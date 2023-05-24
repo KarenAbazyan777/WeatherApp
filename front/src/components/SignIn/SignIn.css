@@ -1,0 +1,29 @@
+.login{
+    padding:50px;
+    display:flex;
+    flex-direction:column;
+    background-image:url("https://picstatio.com/large/geciv2/blue-cloudy-sky-wallpaper.jpg");
+    background-size:cover ;
+    background-repeat: no-repeat;
+    color: black;
+}
+
+.created{
+    text-align: center;
+    margin: auto;
+    padding: 20px;
+    width: 300px;
+    color:green;
+    background: 2px solid black;
+    background-color: white;
+} 
+
+.wronginputs{
+    text-align: center;
+    margin: auto;
+    padding: 20px;
+    width: 300px;
+    color:red;
+    background: 2px solid black;
+    background-color: white;
+}

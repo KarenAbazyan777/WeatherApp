@@ -1,0 +1,27 @@
+.home{
+    display:flex;
+    flex-direction:column;
+    background-image:url("https://picstatio.com/large/geciv2/blue-cloudy-sky-wallpaper.jpg");
+    background-size:cover ;
+    background-repeat: no-repeat;
+    height: 90vh;
+    color: black;
+    text-align: center;
+}
+
+.LinkWeather {
+    color: black;
+    font-family: Arial, Helvetica, sans-serif;
+    text-decoration: none;
+    font-size: 30px;
+    border: 2px solid black;
+    padding: 10px;
+    background-color: white;
+    border-radius:5px;
+}
+
+.home {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

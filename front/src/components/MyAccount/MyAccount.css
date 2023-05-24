@@ -1,0 +1,103 @@
+.myaccount {
+    display:flex;
+    flex-direction:column;
+    background-image:url("https://picstatio.com/large/geciv2/blue-cloudy-sky-wallpaper.jpg");
+    background-size:cover ;
+    background-repeat: no-repeat;
+    color: black;
+    text-align: center;
+    align-items: center;
+    justify-content: center;  
+}
+
+.userinfo{
+    margin-top: 80px;
+    background: white;
+    padding: 10px 100px;
+    border:  1px solid black;
+    margin-bottom: 100px;
+    width: 50%;
+}
+
+.placename {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.place{
+    align-items: center;
+    display: flex;
+    cursor: pointer ;
+    padding: 10px;
+    
+}
+
+.deleteplace{
+    background-color: white;
+    cursor: pointer;
+    margin-left: 5px;
+}
+
+.deleteaccount{
+    padding: 5px 10px;
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100px;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    transition: opacity 500ms;
+    opacity: 1;
+  }
+  .overlay:target {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  .popup {
+    margin: 70px auto;
+    margin-top: 200px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 5px;
+    width: 30%;
+    position: relative;
+    transition: all 5s ease-in-out;
+    border: 2px solid black;
+  }
+  
+  .popup h2 {
+    margin-top: 0;
+    color: #333;
+    font-family: Tahoma, Arial, sans-serif;
+  }
+
+  .popup button{
+    padding: 5px 10px;
+    margin: 5px;
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+ 
+
+@media screen and (max-width:480px) {
+    .userinfo{
+        width: 20%;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 10px 60px;
+    }
+    
+}

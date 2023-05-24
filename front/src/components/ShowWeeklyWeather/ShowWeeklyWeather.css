@@ -1,0 +1,21 @@
+.appweekly {
+    padding:50px;
+    display:flex;
+    flex-direction:column;
+    background-image:url("https://picstatio.com/large/geciv2/blue-cloudy-sky-wallpaper.jpg");
+    background-size:cover ;
+    background-repeat: no-repeat;
+    color: black;
+}
+
+.Link{
+    color: black;
+    font-family: Arial, Helvetica, sans-serif;
+    text-decoration: none;
+    margin: 10px;
+}
+
+.qqq{
+    margin: 30px 0px;
+}
+
