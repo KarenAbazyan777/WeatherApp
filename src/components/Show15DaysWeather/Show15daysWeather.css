@@ -1,0 +1,17 @@
+.days-15 {
+    padding-top: 10px;
+    display:flex;
+    flex-direction:column;
+    background-image:url("https://picstatio.com/large/geciv2/blue-cloudy-sky-wallpaper.jpg");
+    background-size:cover ;
+    background-repeat: no-repeat;
+    color: black;
+}
+
+.maininformation{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+

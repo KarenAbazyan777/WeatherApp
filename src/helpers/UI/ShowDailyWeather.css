@@ -1,0 +1,50 @@
+.placename {
+    display: flex;
+}
+
+.item{
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.weathertime{
+    display:  flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.maininformation{
+    display: flex;
+    
+}
+
+.unique{
+    padding: 19px;
+    display:  flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+@media screen and (max-width:835px) {
+    .maininformation {
+        flex-wrap: wrap;
+    }
+}
+
+
+
+.appdaily {
+    padding:50px;
+    display:flex;
+    flex-direction:column;
+    background-image:url("https://picstatio.com/large/geciv2/blue-cloudy-sky-wallpaper.jpg");
+    background-size:cover ;
+    background-repeat: no-repeat;
+    color: black;
+}
+

@@ -1,0 +1,42 @@
+.NotFound {
+    text-align: center;
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction:column;
+    background-image:url("https://picstatio.com/large/geciv2/blue-cloudy-sky-wallpaper.jpg");
+    background-size:cover ;
+    background-repeat: no-repeat;
+    height: 100vh;
+    color: black;
+  }
+  
+  .NotFound-title {
+    font-weight: 400;
+    color: black;
+  }
+  
+  .NotFound-link {
+    width: 300px;
+    display: inline-block;
+    margin-top: 40px;
+    color: black;
+    text-decoration: none;
+    border: 1px solid black;
+    border-radius: 4px;
+    padding: 18px;
+    transition: border .2s;
+  }
+  
+  .NotFound-link:hover {
+    border: 1px solid #fff;
+  }
+
+  @media screen and (max-width:342px) {
+      .NotFound-link{
+        width: 200px;
+      }
+
+  }
+
+  
