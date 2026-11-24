@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 import Context from '../../context';
 import { API_URL, authHeaders, weatherUrls } from '../../helpers/constants/api';
 import { isLoggedIn, logout, rejectWithStatus } from '../../helpers/auth';
+import { useCitySuggestions } from '../../helpers/hooks/useCitySuggestions';
 
 // Tabs under the search box: URL part + text on the button.
 const LINKS = [
@@ -29,12 +30,45 @@ const Search = observer(({ navigetion }) => {
     const query = placeStore.place.trim();
     const disableSearch = query.length < 2;
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        if (disableSearch) return;
-        placeStore.setWeather(query);
+    // City suggestions under the input
+    const suggestions = useCitySuggestions(placeStore.place);
+    const [open, setOpen] = useState(false);       // is the list shown
+    const [active, setActive] = useState(-1);      // highlighted row (keyboard), -1 = none
+    const showList = open && suggestions.length > 0;
+
+    // New results -> nothing highlighted yet
+    useEffect(() => setActive(-1), [suggestions]);
+
+    const goTo = (place) => {
+        setOpen(false);
+        placeStore.setWeather(place);
         navigetion();
         placeStore.setPlace('');
+    };
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        // Enter on a highlighted suggestion opens that city
+        if (showList && active >= 0) {
+            goTo(suggestions[active].place);
+            return;
+        }
+        if (disableSearch) return;
+        goTo(query);
+    };
+
+    // ↓ ↑ move through the list, Esc closes it (Enter is handled by the form)
+    const handleKeyDown = (e) => {
+        if (!showList) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActive((i) => (i + 1) % suggestions.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActive((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+        } else if (e.key === 'Escape') {
+            setOpen(false);
+        }
     };
 
     // "My location": browser coordinates -> city name -> that city's weather
@@ -90,15 +124,55 @@ const Search = observer(({ navigetion }) => {
     };
 
     return (
-        <section className='card'>
+        <section className='card search-card'>
             <form className='search-form' role='search' onSubmit={handleSearch}>
-                <input
-                    type='search'
-                    aria-label='City'
-                    value={placeStore.place}
-                    onChange={(e) => placeStore.setPlace(e.target.value)}
-                    placeholder='Search a city, e.g. Yerevan or London,UK'
-                />
+                <div className='search-box'>
+                    <input
+                        type='search'
+                        role='combobox'
+                        aria-label='City'
+                        aria-autocomplete='list'
+                        aria-expanded={showList}
+                        aria-controls='city-suggestions'
+                        aria-activedescendant={active >= 0 ? `city-${suggestions[active].id}` : undefined}
+                        autoComplete='off'
+                        value={placeStore.place}
+                        onChange={(e) => {
+                            placeStore.setPlace(e.target.value);
+                            setOpen(true);
+                        }}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => setOpen(true)}
+                        onBlur={() => setOpen(false)}
+                        placeholder='Search a city, e.g. Yerevan or London,UK'
+                    />
+
+                    {showList && (
+                        <ul className='suggestions' id='city-suggestions' role='listbox'>
+                            {suggestions.map((s, i) => (
+                                <li
+                                    key={s.id}
+                                    id={`city-${s.id}`}
+                                    role='option'
+                                    aria-selected={i === active}
+                                    className={i === active ? 'active' : ''}
+                                    // mousedown (not click): fires before the input loses focus and closes the list
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        goTo(s.place);
+                                    }}
+                                    onMouseEnter={() => setActive(i)}
+                                >
+                                    <span className='suggestion-country' aria-hidden='true'>{s.country}</span>
+                                    <span className='suggestion-text'>
+                                        <strong>{s.name}</strong>
+                                        <span className='muted'>{s.details}</span>
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
                 <button type='submit' className='btn btn-primary' disabled={disableSearch}>
                     Search
                 </button>

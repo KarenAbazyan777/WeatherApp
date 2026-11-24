@@ -15,6 +15,10 @@ const WEATHERAPI_KEY = process.env.REACT_APP_WEATHERAPI_KEY;
 const VISUALCROSSING_KEY = process.env.REACT_APP_VISUALCROSSING_KEY;
 
 export const weatherUrls = {
+    // Open-Meteo geocoding: city suggestions while typing (free, no key needed)
+    citySearch: (text) =>
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=6&language=en&format=json`,
+
     // openweathermap: coordinates -> nearest city name ("My location" button)
     reverseGeocode: (lat, lon) =>
         `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${OPENWEATHER_KEY}`,
