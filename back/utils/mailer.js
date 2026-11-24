@@ -64,35 +64,9 @@ const checkSmtp = (attempt = 1) => {
         });
 };
 
-const checkBrevo = (attempt = 1) => {
-    fetch('https://api.brevo.com/v3/account', {
-        headers: { 'api-key': BREVO_API_KEY, accept: 'application/json' },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-    })
-        .then(async (res) => {
-            if (res.ok) {
-                setStatus('ready', () => console.log(`📧 Email ready (Brevo API): sent from ${FROM}`));
-                return;
-            }
-            // Brevo explains the reason in the body, e.g. an unrecognised IP address
-            const body = await res.json().catch(() => ({}));
-            const reason = `HTTP ${res.status}${body.message ? `: ${body.message}` : ''}`;
-            if (res.status === 401 || res.status === 403) {
-                setStatus(`rejected: ${reason}`, () => console.error(`❌ Brevo rejected the request (${reason}).`));
-                return;
-            }
-            throw new Error(reason);
-        })
-        .catch((err) => {
-            if (attempt < CHECK_ATTEMPTS) {
-                setTimeout(() => checkBrevo(attempt + 1), CHECK_DELAY_MS);
-                return;
-            }
-            setStatus(`unreachable: ${err.message}`, () => console.warn(`⚠️  Could not reach Brevo (${err.message}).`));
-        });
-};
-
-if (mode === 'brevo') checkBrevo();
+// Brevo keys can be limited to "send email" only, so there is nothing safe to
+// check at startup: the status is updated by the first real email instead.
+if (mode === 'brevo') setStatus('configured, waiting for the first email', () => console.log(`📧 Email via Brevo API, sent from ${FROM}`));
 else if (mode === 'smtp') checkSmtp();
 else console.warn('⚠️  Email is not set in .env: emails are NOT sent, links are printed here instead.');
 
@@ -131,10 +105,16 @@ const sendLinkEmail = async ({ to, subject, intro, buttonText, link, outro }) =>
                  <p style="color:#475569;font-size:14px">${outro}</p>
                </div>`;
 
-    if (mode === 'brevo') {
-        await sendViaBrevo({ to, subject, text, html });
-    } else {
-        await transporter.sendMail({ from: FROM, to, subject, text, html });
+    try {
+        if (mode === 'brevo') {
+            await sendViaBrevo({ to, subject, text, html });
+        } else {
+            await transporter.sendMail({ from: FROM, to, subject, text, html });
+        }
+        status = `ready (last email sent ${new Date().toISOString()})`;
+    } catch (error) {
+        status = `last email failed: ${error.message}`;
+        throw error;
     }
 };
 
