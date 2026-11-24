@@ -7,7 +7,7 @@ const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/mail
 const SALT_ROUNDS = 10;
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 const VERIFY_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
+const { CLIENT_URL } = require('../config'); // frontend address used in email links
 
 // Accepts only a normal, non-empty string. Anything else (an object like
 // {"$gt": ""}, a number, a huge text) returns null, so it never reaches a query.

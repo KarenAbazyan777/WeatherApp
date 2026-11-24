@@ -5,9 +5,9 @@ const mongoose = require('mongoose');
 const authRouter = require('./router/router');
 const cors = require('cors');
 const helmet = require('helmet');
+const { CLIENT_URLS } = require('./config');
 
 const PORT = process.env.PORT || 5000;
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
 const app = express();
 
@@ -19,8 +19,13 @@ if (process.env.TRUST_PROXY) {
 
 app.use(helmet());
 
+// Hosting checks this to know the server is alive (Render "Health Check Path").
+app.get('/health', (req, res) => {
+    res.json({ ok: true, database: mongoose.connection.readyState === 1 ? 'connected' : 'not connected' });
+});
+
 app.use(cors({
-    origin: CLIENT_URL,
+    origin: CLIENT_URLS,
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));
@@ -52,7 +57,7 @@ const start = async () => {
         console.log("✅ MongoDB connected successfully!");
 
         app.listen(PORT, () => {
-            console.log(`🚀 Server running at http://localhost:${PORT}`);
+            console.log(`🚀 Server running on port ${PORT}, accepting requests from: ${CLIENT_URLS.join(', ')}`);
         });
 
     } catch (error) {
