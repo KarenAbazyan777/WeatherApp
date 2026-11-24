@@ -1,15 +1,18 @@
-export const dateBuilder = (timezone) => {
-   
-    const nowInLocalTime = Date.now()  + 1000 * (timezone / 3600);
-    const millitime = new Date(nowInLocalTime);
+// Formats a moment in the city's local time.
+// timezoneOffset: city's shift from UTC in seconds (openweathermap `timezone`)
+// unixSeconds:    the moment to show, in seconds (openweathermap `dt`), default = now
+export const dateBuilder = (timezoneOffset, unixSeconds = Date.now() / 1000) => {
+    // Shift the moment by the city's offset, then print it as UTC:
+    // the result is the clock time people see in that city.
+    const cityTime = new Date((unixSeconds + timezoneOffset) * 1000);
 
-    let day = millitime.toLocaleString("en-US", {weekday: "long"});
-    let month = millitime.toLocaleString("en-US", {month: "long"}); 
-    let date = millitime.toLocaleString("en-US", {day: "numeric"});
-    let year = millitime.toLocaleString("en-US", {year: "numeric"}); 
-    let hours = millitime.toLocaleString("en-US", {hour: "numeric"}); 
-    let hourss = hours.split(' ');
-    let minutes = millitime.toLocaleString("en-US", {minute: "numeric"});
-
-    return `${day} ${date} ${month} ${year} ${hourss[0]}:${minutes}`;
-}
+    return cityTime.toLocaleString('en-US', {
+        timeZone: 'UTC',
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+    });
+};

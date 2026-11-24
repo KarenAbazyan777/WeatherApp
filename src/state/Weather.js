@@ -1,47 +1,22 @@
-import { action, makeObservable, observable } from 'mobx';
-import React, { Component } from 'react';
+import { makeAutoObservable } from 'mobx';
 
-class Weather extends Component {
-    constructor(){
-        super();
-        this.isLoading = false;
-        this.error = '';
-        this.currentWeather = [];
-        makeObservable(this,{
-            isLoading:observable,
-            currentWeather:observable,
-            error:observable,
-            
-            setIsLoading:action,
-            setError:action,
-            setCurrentWeather:action
-        },{deep:true});
+// Loading / error state shared by the weather pages.
+// The weather data itself lives in the cache in helpers/hooks/weatherHooks.js.
+class Weather {
+    isLoading = false;
+    error = '';
+
+    constructor() {
+        makeAutoObservable(this, {}, { autoBind: true });
     }
-    setIsLoading(bool){
+
+    setIsLoading(bool) {
         this.isLoading = bool;
     }
 
-    getIsLoading(){
-        return this.isLoading;
-    }
-
-    setError(error){
+    setError(error) {
         this.error = error;
     }
-
-    getError(){
-        return this.error;
-    }
-
-    setCurrentWeather(weather){
-        this.currentWeather.push(weather);
-    }
-
-    getCurrentWeather(){
-        return this.currentWeather;
-    }
-
-    
 }
 
 export default Weather;

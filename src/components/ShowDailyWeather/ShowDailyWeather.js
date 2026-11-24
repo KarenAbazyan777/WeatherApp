@@ -1,97 +1,81 @@
-import React, { useContext, useEffect } from 'react';
-import Context from '../..';
+import React, { useContext } from 'react';
 import { observer } from 'mobx-react-lite';
-import { toJS } from 'mobx';
-import '../../helpers/UI/ShowDailyWeather.css'
-import Search from '../Search/Search'
-import {useNavigate, useParams} from 'react-router-dom';
-import Loading from '../Loading/Loading';
+import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import Context from '../../context';
+import WeatherPage from '../WeatherPage/WeatherPage';
+import { HourlyForecast } from '../Forecast/Forecast';
+import { usePlace, useWeather } from '../../helpers/hooks/weatherHooks';
+import { weatherUrls, weatherIcon } from '../../helpers/constants/api';
+import { formatDay, getSky, round, useTemp } from '../../helpers/format';
 
 const ShowDailyWeather = observer(() => {
-    
-    const {currentWeather} = useContext(Context);
-    const {placeStore} = useContext(Context);
-    const params = useParams();
+    const { placeStore } = useContext(Context);
+    const { date } = useParams();
     const navigate = useNavigate();
+    const place = usePlace();
+    const t = useTemp();
 
-    useEffect(()=>{
-        currentWeather.setError('');
-        currentWeather.setIsLoading(true);
-        fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/iconSet=icons1&${placeStore.weather}/${params.date}?key=KFF7D9WYZGS7DT7PR3XRCB49M&unitGroup=metric `)
-        .then(res=>{
-            if(!res.ok){
-                throw new Error();
-            }
-            return res.json();
-        }).then(result=>{
-            currentWeather.setIsLoading(false);
-            currentWeather.setCurrentWeather(result);
-        }).catch(error=>{
-            currentWeather.setIsLoading(false);
-            currentWeather.setError(error);
-        })
-        
-    },[placeStore.weather])
+    // Same request as Weekly / 15 Days: the day is picked from that data.
+    const { isLoading, data: item } = useWeather(weatherUrls.timeline(place));
 
+    const navigetion = () => navigate(`/daily/${placeStore.weather}/${date}`);
 
-    if(currentWeather.error){
-        placeStore.setWeather('london,UK');
-        navigate('/NotFound');
+    if (isLoading) {
+        return <WeatherPage navigetion={navigetion} isLoading />;
     }
 
-    if(currentWeather.isLoading){
+    if (!item || !item.days) {
+        return null;
+    }
+
+    const day = item.days.find((d) => d.datetime === date);
+    const back = (
+        <NavLink to={`/days-15/${placeStore.weather}`} className='btn btn-ghost back-link'>
+            ← All 15 days
+        </NavLink>
+    );
+
+    if (!day) {
         return (
-                <Loading>
-
-                </Loading>
-                )
+            <WeatherPage navigetion={navigetion}>
+                {back}
+                <section className='card'>
+                    <h1 className='section-title'>No forecast for {date}</h1>
+                    <p className='muted'>Pick a day from the 15-day forecast.</p>
+                </section>
+            </WeatherPage>
+        );
     }
 
-   
+    // every 3rd hour; visualcrossing with unitGroup=metric: °C and km/h
+    const hours = day.hours
+        .filter((_, index) => index % 3 === 0)
+        .map((h) => ({
+            time: h.datetime.slice(0, 5),
+            icon: weatherIcon(h.icon),
+            text: h.conditions,
+            temp: h.temp,
+            feels: h.feelslike,
+            wind: h.windspeed,
+        }));
 
-    const navigetion = ()=>{
-        if(!currentWeather.error){
-            navigate(`/daily/${placeStore.weather}/${params.date}`);
-        }
-    }
-
-
-    if(params.date && toJS(currentWeather.currentWeather.length !== 0)){
-        const item = toJS(currentWeather.currentWeather[toJS(currentWeather.currentWeather.length) - 1]);
-        const days = item.days
-        return (
-            <div className='appdaily'>
-                <Search navigetion={navigetion}></Search>
-                <div className='item'>
-                        <div className='placename'>
-                            <h4>Weather in {item.resolvedAddress} 2023-{params.date}</h4>
-                        </div>
-                        <div className='weathertime'>
-                            <div className='maininformation'>
-                                {item.days[0].hours.map((piece,index)=>{
-                                if(index % 3 === 0){
-                                    return  (
-                                           
-                                            <div key={piece.datetime.substring(0,5)} className='unique'>
-                                                <h4>{piece.datetime.substring(0,5)}</h4>
-                                                <img src={require(`../../helpers/images/${piece.icon}.png`)}/>
-                                                <h4>Temp {piece.temp} C</h4> 
-                                                <h4>Wind {piece.windspeed} Mph</h4>
-                                                <h4>feels {piece.feelslike} Mph</h4>
-                                            </div>
-                                        
-                                            )
-                                }
-                                })}
-                            </div>
-                        </div>
-                    </div> 
-            </div>
-        )
-        
-    }
-})
+    return (
+        <WeatherPage navigetion={navigetion} sky={getSky(day.icon)}>
+            {back}
+            <section className='card'>
+                <div className='section-head'>
+                    <h1 className='section-title'>{formatDay(day.datetime).long}</h1>
+                    <p className='muted'>{item.resolvedAddress}</p>
+                </div>
+                <div className='summary'>
+                    <span className='pill'>{day.conditions}</span>
+                    <span className='pill'>High {t(day.tempmax)} · Low {t(day.tempmin)}</span>
+                    <span className='pill'>Rain chance {round(day.precipprob || 0)}%</span>
+                </div>
+                <HourlyForecast hours={hours} />
+            </section>
+        </WeatherPage>
+    );
+});
 
 export default ShowDailyWeather;
-
-

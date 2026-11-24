@@ -1,5 +1,4 @@
-import React, { useMemo, useState } from 'react';
-import './resetpassword.css'
+import React, { useState } from 'react';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -8,128 +7,86 @@ import Box from '@mui/material/Box';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import theme from '../../helpers/theme';
+import { isValidPassword } from '../../helpers/validation';
+import { useNavigate, useParams } from 'react-router-dom';
+import { API_URL, jsonHeaders } from '../../helpers/constants/api';
+import { rejectWithStatus } from '../../helpers/auth';
 
-
-
-
-
-const theme = createTheme();
 
 const Resetpassword = () => {
-
-    const [userpassword,setPassword] = useState('');
-    const [confirmpassword,setConfirmPassword] = useState('');
-    const [useremail,setUserEmail] = useState('');
+    const { token } = useParams();
     const navigate = useNavigate();
+    const [userpassword, setPassword] = useState('');
+    const [confirmpassword, setConfirmPassword] = useState('');
+    const [error, setError] = useState('');
+    const [sending, setSending] = useState(false);
 
-    const isDisabled = useMemo(()=>{
-        const regexpassword = /^(((?=.*[a-z])(?=.*[A-Z]))|((?=.*[a-z])(?=.*[0-9]))|((?=.*[A-Z])(?=.*[0-9])))(?=.{6,})/;
-        const regexemail = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
-        
-        return !(userpassword === confirmpassword) || !userpassword.length > 0 ||  !regexpassword.test(userpassword) || !regexemail.test(useremail);
-    })
+    const isDisabled = sending || userpassword !== confirmpassword || !isValidPassword(userpassword);
 
-    const changePassword = ()=>{
-        const foo = {useremail,userpassword}
-        {
-            fetch("http://localhost:3000/auth/resetpassword",{ 
-               method:"POST",
-               headers: {
-                "Accept": 'application/json',
-                "Access-Control-Allow-Origin" : "*", 
-                "Access-Control-Allow-Credentials" : true ,
-                "Content-Type": "application/json;  charset=utf-8"
-               },
-               body:JSON.stringify(foo)
-            }).then((res)=>{
-              if(!res.ok){
-                return res.json().then(err => Promise.reject(err));
-              }
-              return res.json();
-            })
-            .then((response)=>{
-             
-              navigate('/signin');
-             
-            })
-            .catch((e)=>console.log(e));
-        }
-    }
+    const changePassword = (e) => {
+        e.preventDefault();
+        if (isDisabled) return;
+        setSending(true);
+        setError('');
+        fetch(`${API_URL}/resetpassword`, {
+            method: 'POST',
+            headers: jsonHeaders,
+            body: JSON.stringify({ token, userpassword }),
+        })
+            .then((res) => (res.ok ? res.json() : rejectWithStatus(res)))
+            .then(() => navigate('/signin'))
+            .catch((err) => setError(err.message || 'Something went wrong'))
+            .finally(() => setSending(false));
+    };
 
     return (
-        <div className='reset'>
-                <ThemeProvider theme={theme}>
-      <Container component="main" maxWidth="xs">
-        <CssBaseline />
-        <Box
-          sx={{
-            marginTop: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-            <LockOutlinedIcon />
-          </Avatar>
-          <Typography component="h1" variant="h5">
-            Reset account password
-          </Typography>
-          <Box component="form"  noValidate sx={{ mt: 1 }}>
-          <TextField 
-              value={useremail} 
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="useremail"
-              autoComplete="email"
-              autoFocus
-              onChange={(e)=>setUserEmail(e.target.value)}
-            
-            />
-            <TextField  
-              value={userpassword}
-              margin="normal"
-              required
-              fullWidth
-              label="New password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              autoFocus
-              onChange={(e)=>setPassword(e.target.value)}
-            />
-            <TextField
-              value={confirmpassword}
-              margin="normal"
-              required
-              fullWidth
-              label="Confirm password"
-              type="password"
-              id="confirmpassword"
-              autoComplete="current-password"
-              autoFocus
-              onChange={(e)=>setConfirmPassword(e.target.value)}
-            />
-        
-            <Button
-              onClick={changePassword}
-              disabled={isDisabled}
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-            >
-             enter
-            </Button>
-
-          </Box>
-        </Box>
-      </Container>
-    </ThemeProvider>
+        <div className='auth-page'>
+            <ThemeProvider theme={theme}>
+                <Container component="main" maxWidth="xs">
+                    <CssBaseline />
+                    <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+                            <LockOutlinedIcon />
+                        </Avatar>
+                        <Typography component="h1" variant="h5">
+                            Set a new password
+                        </Typography>
+                        <Box component="form" noValidate sx={{ mt: 1 }} onSubmit={changePassword}>
+                            <TextField
+                                value={userpassword}
+                                margin="normal"
+                                required
+                                fullWidth
+                                label="New password"
+                                type="password"
+                                id="password"
+                                autoComplete="new-password"
+                                autoFocus
+                                helperText="At least 6 characters, mix of letters and numbers or cases"
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <TextField
+                                value={confirmpassword}
+                                margin="normal"
+                                required
+                                fullWidth
+                                label="Confirm password"
+                                type="password"
+                                id="confirmpassword"
+                                autoComplete="new-password"
+                                error={confirmpassword.length > 0 && confirmpassword !== userpassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                            />
+                            {error && <Typography color="error">{error}</Typography>}
+                            <Button type="submit" disabled={isDisabled} fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
+                                {sending ? 'Saving...' : 'Change password'}
+                            </Button>
+                        </Box>
+                    </Box>
+                </Container>
+            </ThemeProvider>
         </div>
     );
 };

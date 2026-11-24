@@ -11,15 +11,16 @@ import Box from '@mui/material/Box';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import Context from '../../index'
+import { ThemeProvider } from '@mui/material/styles';
+import theme from '../../helpers/theme';
+import { isValidEmail, isValidName, isValidPassword } from '../../helpers/validation';
+import Context from '../../context'
 import { observer } from 'mobx-react-lite';
-import './SignUp.css'
 import { toJS } from 'mobx';
 import { useNavigate } from 'react-router-dom';
+import { API_URL, jsonHeaders } from '../../helpers/constants/api';
 
 
-const theme = createTheme();
 
 const SignUp = observer(() =>{
 
@@ -27,39 +28,31 @@ const SignUp = observer(() =>{
   const navigate = useNavigate();
   const {userinfo} = useContext(Context);
 
+  const {username,userlname,useremail,userpassword} = userinfo.user;
   const isDisabled = useMemo(() => {
-    const {username,userlname,useremail,userpassword} = userinfo.user
-    const regexemail = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
-    const regexname = /^[a-z ,.'-]+$/i;
-    const regexpassword = /^(((?=.*[a-z])(?=.*[A-Z]))|((?=.*[a-z])(?=.*[0-9]))|((?=.*[A-Z])(?=.*[0-9])))(?=.{6,})/;
-    return  !regexpassword.test(userpassword) || !regexemail.test(useremail) || !regexname.test(username) || !regexname.test(userlname);
-  },[userinfo.user.username,userinfo.user.userlname,userinfo.user.useremail,
-    userinfo.user.userpassword]);
+    return !isValidPassword(userpassword) || !isValidEmail(useremail) || !isValidName(username) || !isValidName(userlname);
+  },[username,userlname,useremail,userpassword]);
 
   const handleInput = (e)=>{
       userinfo.setUser(e.target.name,e.target.value);
   }
 
+  const signupError = userinfo.signupError;
   useEffect(() => {
-    if (toJS(userinfo.signupError)) {
+    if (signupError) {
       const toRef = setTimeout(() => {
         userinfo.setSignUpError(false);
         clearTimeout(toRef);
       }, 4000);
     }
-  }, [toJS(userinfo.signupError)]);
+  }, [signupError, userinfo]);
 
   const handleSignUp = (e)=>{  
    
    
-    fetch("http://localhost:3000/auth/signup",{
+    fetch(`${API_URL}/signup`,{
        method:"POST",
-       headers: {
-        "Accept": 'application/json',
-        "Access-Control-Allow-Origin" : "*", 
-        "Access-Control-Allow-Credentials" : true ,
-        "Content-Type": "application/json;  charset=utf-8"
-       },
+       headers: jsonHeaders,
        body:JSON.stringify(toJS(userinfo.user))
     }).then((res)=>{
       if(!res.ok){
@@ -78,8 +71,8 @@ const SignUp = observer(() =>{
     });
 }
   return (
-      <div className='register'>
-        {userinfo.signupError && <div className='wronginputs'>USER WITH  THIS EMAIL ALREADY EXISTS</div>}
+      <div className='auth-page'>
+        {userinfo.signupError && <div className='alert alert-error' role='alert'>A user with this email already exists.</div>}
             <ThemeProvider theme={theme}>
       <Container component="main" maxWidth="xs">
         <CssBaseline />

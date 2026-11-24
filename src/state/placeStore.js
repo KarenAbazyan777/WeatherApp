@@ -1,36 +1,20 @@
-import {action, makeObservable, observable} from 'mobx'
-import React from 'react';
+import { makeAutoObservable } from 'mobx';
 
-class PlaceStore extends React.Component {
-    
-    constructor(){
-        super();
-        this.place = '';
-        this.weather = 'london,UK';
-        makeObservable(this,{
-            place:observable,
-            weather:observable,
-            
-            setPlace:action,
-            setWeather:action
-        },{deep:true});
+class PlaceStore {
+    place = '';            // text typed in the search box
+    weather = 'london,UK'; // city whose weather is shown
+
+    constructor() {
+        makeAutoObservable(this, {}, { autoBind: true });
     }
 
-    setPlace(place){
+    setPlace(place) {
         this.place = place;
     }
 
-    getPlace(){
-        return this.place;
-    }
-
-     setWeather(weather){
+    setWeather(weather) {
         this.weather = weather;
     }
-
-    getWeather(){
-        return this.weather;
-    } 
 }
 
 export default PlaceStore;

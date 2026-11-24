@@ -1,93 +1,51 @@
-import { action, makeObservable, observable } from 'mobx';
-import React, { Component } from 'react';
+import { makeAutoObservable } from 'mobx';
 
-class UserInfo extends Component {
-    constructor(){
-        super();
-        this.user = {username:'',userlname:'', useremail:'',userpassword:''};
-        this.loginuser = {useremail:'',userpassword:''};
-        this.isAuth = false;
-        this.accountInfo = '';
-        this.iscreated = false;
-        this.loginError = '';
-        this.signupError = false;
-        makeObservable(this,{
-            signupError:observable,
-            accountInfo:observable,
-            isAuth:observable,
-            loginError:observable,
-            iscreated:observable,
-            user:observable,
-            loginuser:observable,
+class UserInfo {
+    user = { username: '', userlname: '', useremail: '', userpassword: '' }; // sign-up form
+    loginuser = { useremail: '', userpassword: '' };                         // sign-in form
+    isAuth = false;
+    accountInfo = '';      // data from /myaccount
+    iscreated = false;     // shows "user is created" after sign-up
+    loginError = '';
+    signupError = false;
 
-            setUser:action,
-            setLoginUser:action,
-            setIsAuth:action,
-            setIsCreated:action,
-            setLoginError:action,
-            setAccountInfo:action,
-            setSignUpError:action,
-           
-        },{deep:true});
-    }
-    setUser(arg,value){
-        this.user[arg] = value;
+    constructor() {
+        makeAutoObservable(this, {}, { autoBind: true });
     }
 
-    getUser(){
-        return this.user
+    setUser(field, value) {
+        this.user[field] = value;
     }
 
-    setLoginUser(arg,value){
-        this.loginuser[arg] = value;
+    setLoginUser(field, value) {
+        this.loginuser[field] = value;
     }
 
-    getLoginUser(){
-        return this.loginuser;
+    setIsAuth(bool) {
+        this.isAuth = bool;
     }
 
-    setIsAuth(bool){
-        this.isAuth = bool; 
-    }
-    getisAuth(bool){
-        return this.isAuth;
-    }
-
-    setIsCreated(bool){
+    setIsCreated(bool) {
         this.iscreated = bool;
     }
 
-    getisCreated(){
-        return this.iscreated;
-    }
-
-    setLoginError(err){
+    setLoginError(err) {
         this.loginError = err;
     }
 
-    getLoginError(){
-        return this.loginError;
+    setAccountInfo(info) {
+        this.accountInfo = info;
     }
 
-    setAccountInfo(info){
-        this.accountInfo = info; 
+    setPlaces(places) {
+        if (this.accountInfo) {
+            this.accountInfo.places = places;
+        }
     }
 
-    getAccountInfo(){
-        return this.accountInfo
+    setSignUpError(bool) {
+        this.signupError = bool;
     }
-
-    setSignUpError(bool){
-        this.signupError = bool 
-    }
-
-    getSignUpError(){
-        return this.signupError;
-    }
-
-    
-
-    
 }
 
 export default UserInfo;

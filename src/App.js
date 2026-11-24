@@ -1,43 +1,52 @@
-import React from "react"
-import ShowCurrentWeather from './components/ShowCurrentWeather/ShowCurrentWeather';
-import {BrowserRouter,Route,Routes} from 'react-router-dom'
-import NotFound from './components/NotFound/NotFound';
-import ShowTodayWeather from './components/ShowTodayWeather/ShowTodayWeather';
-import ShowMonthWeather from './components/Show15DaysWeather/Show15daysWeather';
-import ShowTommorowWeather from './components/ShowTommorowWeather/ShowTommorowWeather';
-import ShowWeeklyWeather from './components/ShowWeeklyWeather/ShowWeeklyWeather.js';
-import ShowDailyWeather from "./components/ShowDailyWeather/ShowDailyWeather";
-import Home from "./components/Home/Home";
-import Header from "./components/Header/Header";
-import SignUp from "./components/SignUp/SignUp";
-import SignIn from "./components/SignIn/SignIn";
-import MyAccount from "./components/MyAccount/MyAccount";
-import Resetpassword from "./components/resetpassword/resetpassword";
+import React, { lazy, Suspense } from 'react';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import Header from './components/Header/Header';
+import Home from './components/Home/Home';
+import Loading from './components/Loading/Loading';
 
-const  App = ()=> {
+// Every page below is downloaded only when the user opens it.
+// The form pages carry MUI (the biggest library), so visitors who only
+// check the weather never download it.
+const ShowCurrentWeather = lazy(() => import('./components/ShowCurrentWeather/ShowCurrentWeather'));
+const ShowTodayWeather = lazy(() => import('./components/ShowTodayWeather/ShowTodayWeather'));
+const ShowTommorowWeather = lazy(() => import('./components/ShowTommorowWeather/ShowTommorowWeather'));
+const ShowWeeklyWeather = lazy(() => import('./components/ShowWeeklyWeather/ShowWeeklyWeather'));
+const Show15DaysWeather = lazy(() => import('./components/Show15DaysWeather/Show15daysWeather'));
+const ShowDailyWeather = lazy(() => import('./components/ShowDailyWeather/ShowDailyWeather'));
+const SignIn = lazy(() => import('./components/SignIn/SignIn'));
+const SignUp = lazy(() => import('./components/SignUp/SignUp'));
+const MyAccount = lazy(() => import('./components/MyAccount/MyAccount'));
+const ForgotPassword = lazy(() => import('./components/resetpassword/ForgotPassword'));
+const Resetpassword = lazy(() => import('./components/resetpassword/resetpassword'));
+const VerifyEmail = lazy(() => import('./components/VerifyEmail/VerifyEmail'));
+const NotFound = lazy(() => import('./components/NotFound/NotFound'));
 
-  return (
-      <BrowserRouter>
-         <Header></Header>
-         <div >
-            <Routes>
-                <Route exact path ={'/myaccount'} element={ <MyAccount />}/>  
-                <Route exact path ={'/signin'} element={ <SignIn/>}/>  
-                <Route exact path ={'/signup'} element={ <SignUp/>}/>  
-                <Route exact path ={'/'} element={ <Home />}/>
-                <Route exact path ={'/now/:placeName'} element={ <ShowCurrentWeather />}/>
-                <Route exact path ={'/today/:placeName'} element={ <ShowTodayWeather />}/>
-                <Route exact path ={'/tommorow/:placeName'} element={ <ShowTommorowWeather />}/>
-                <Route exact path ={'/weekly/:placeName'} element={ <ShowWeeklyWeather />}/>
-                <Route exact path ={'/days-15/:placeName'} element={ <ShowMonthWeather />}/>
-                <Route exact path ={'/daily/:placeName/:date'} element={ <ShowDailyWeather />}/>
-                <Route exact path = {'/NotFound'} element={<NotFound/>}/>
-                <Route exact path = '*' element={<NotFound/>}/>
-                <Route exact path = {'/resetpassword'} element={<Resetpassword/>}/>
-            </Routes>
+const App = () => (
+    <BrowserRouter>
+        <Header />
+        <div>
+            {/* Shown for the moment a page's file is downloading */}
+            <Suspense fallback={<Loading />}>
+                <Routes>
+                    <Route path='/' element={<Home />} />
+                    <Route path='/now/:placeName' element={<ShowCurrentWeather />} />
+                    <Route path='/today/:placeName' element={<ShowTodayWeather />} />
+                    <Route path='/tommorow/:placeName' element={<ShowTommorowWeather />} />
+                    <Route path='/weekly/:placeName' element={<ShowWeeklyWeather />} />
+                    <Route path='/days-15/:placeName' element={<Show15DaysWeather />} />
+                    <Route path='/daily/:placeName/:date' element={<ShowDailyWeather />} />
+                    <Route path='/signin' element={<SignIn />} />
+                    <Route path='/signup' element={<SignUp />} />
+                    <Route path='/myaccount' element={<MyAccount />} />
+                    <Route path='/forgotpassword' element={<ForgotPassword />} />
+                    <Route path='/resetpassword/:token' element={<Resetpassword />} />
+                    <Route path='/verify/:token' element={<VerifyEmail />} />
+                    <Route path='/NotFound' element={<NotFound />} />
+                    <Route path='*' element={<NotFound />} />
+                </Routes>
+            </Suspense>
         </div>
-      </BrowserRouter>
-  );
-}
+    </BrowserRouter>
+);
 
 export default App;

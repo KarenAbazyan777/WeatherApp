@@ -1,122 +1,136 @@
-import React, { useContext, useMemo, useState } from 'react';
-import './Search.css'
-import Context from '../..';
-import {observer} from 'mobx-react-lite'
-import {NavLink, useNavigate} from 'react-router-dom';
-import { toJS } from 'mobx';
+import React, { useContext, useEffect, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { NavLink } from 'react-router-dom';
+import Context from '../../context';
+import { API_URL, authHeaders, weatherUrls } from '../../helpers/constants/api';
+import { isLoggedIn, logout, rejectWithStatus } from '../../helpers/auth';
 
- 
-const Search = observer(({navigetion}) => {
-    const {placeStore} = useContext(Context);
-    const {userinfo} = useContext(Context);
-    const [pleaseSignIn,setPleaseSignIn] = useState(false);
-    
-    const handleInput = (e)=>{
-        placeStore.setPlace(e.target.value)
-    }
+// Tabs under the search box: URL part + text on the button.
+const LINKS = [
+    { path: 'now', label: 'Now' },
+    { path: 'today', label: 'Today' },
+    { path: 'tommorow', label: 'Tomorrow' },
+    { path: 'weekly', label: 'Weekly' },
+    { path: 'days-15', label: '15 Days' },
+];
 
-    const handleButton = ()=>{
-        placeStore.setWeather(placeStore.place);
+const Search = observer(({ navigetion }) => {
+    const { placeStore, userinfo } = useContext(Context);
+    const [message, setMessage] = useState('');
+    const [locating, setLocating] = useState(false);
+
+    // Hide the message after 4 seconds (and cancel the timer if we leave the page).
+    useEffect(() => {
+        if (!message) return undefined;
+        const timer = setTimeout(() => setMessage(''), 4000);
+        return () => clearTimeout(timer);
+    }, [message]);
+
+    const query = placeStore.place.trim();
+    const disableSearch = query.length < 2;
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (disableSearch) return;
+        placeStore.setWeather(query);
         navigetion();
         placeStore.setPlace('');
+    };
 
-    }
-
-    const showSignIn = ()=>{
-            const toRef = setTimeout(() => {
-              setPleaseSignIn(false);
-              clearTimeout(toRef);
-            }, 4000);
-          
-    }
-
-    const disableSearch = useMemo(()=>{
-        const shortname = placeStore.place.split("").reverse().join("");
-        return (!placeStore.place.includes(',') || !(shortname[2] === ',' || shortname[3] === ',') || !placeStore.place.length > 0); 
-    },[placeStore.place])
-
-    const addPlace = ()=>{
-        if(!toJS(userinfo.isAuth || localStorage.getItem('email'))){
-            setPleaseSignIn(true);
-            return showSignIn()
+    // "My location": browser coordinates -> city name -> that city's weather
+    const locateMe = () => {
+        if (!navigator.geolocation) {
+            return setMessage('Your browser cannot share its location');
         }
-        const foo = {useremail:localStorage.getItem('email'), place:placeStore.weather.toUpperCase()};    
-        fetch("http://localhost:3000/auth/places",{
-            method:"POST",
-            headers: {
-             "Accept": 'application/json',
-             "Access-Control-Allow-Origin" : "*", 
-             "Access-Control-Allow-Credentials" : true ,
-             "Content-Type": "application/json;  charset=utf-8"
-            },  
-            body:JSON.stringify(foo)
+        setLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            async ({ coords }) => {
+                const lat = coords.latitude.toFixed(4);
+                const lon = coords.longitude.toFixed(4);
+                let place = `${lat},${lon}`; // fallback if the name lookup fails
+                try {
+                    const res = await fetch(weatherUrls.reverseGeocode(lat, lon));
+                    const [hit] = await res.json();
+                    if (hit) place = `${hit.name},${hit.country}`;
+                } catch (e) {
+                    // keep the coordinates
+                }
+                setLocating(false);
+                placeStore.setWeather(place);
+                navigetion();
+            },
+            (error) => {
+                setLocating(false);
+                setMessage(error.code === error.PERMISSION_DENIED
+                    ? 'Location access was blocked. Allow it in the browser to use this.'
+                    : 'Could not get your location, try again');
+            },
+            { timeout: 10000, maximumAge: 10 * 60 * 1000 }
+        );
+    };
+
+    const addPlace = () => {
+        if (!(userinfo.isAuth || isLoggedIn())) {
+            return setMessage('Sign in to save places');
+        }
+        fetch(`${API_URL}/places`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ place: placeStore.weather.toUpperCase() }),
         })
-        .then(res=>{
-            if(!res.ok){
-                return res.json().then(err => Promise.reject(err));
-              }
-            return res.json();
-        }).then(result=>{
-           
-           console.log(result);
-        }).catch(error=>{
-          
-        })
-    }
+            .then((res) => (res.ok ? res.json() : rejectWithStatus(res)))
+            .then(() => setMessage('Added to your places ✓'))
+            .catch((error) => {
+                if (error.status === 401) {
+                    logout(userinfo);
+                    return setMessage('Session expired, please sign in again');
+                }
+                setMessage(error.message || 'Something went wrong');
+            });
+    };
 
     return (
-       <div className='headers'>
-            <div className='search'>
-                <input type='text' onChange={handleInput} value={placeStore.place} placeholder='Please enter a vaild place name example london,UK' ></input>
-                <button disabled={disableSearch} onClick={handleButton}>SEARCH</button>
-            </div>
-            <div className='links'>
-                <NavLink  
-                     style=
-                     {({ isActive }) => ({
-                        color: isActive ? '#fff' : '#545e6f',
-                        background: isActive ? '#0039a6' : '#f0f0f0',
-                    })} 
-                    to={`/now/${placeStore.weather}` } 
-                    className='Link'>Now</NavLink>
-                <NavLink 
-                    style=
-                    {({ isActive }) => ({
-                        color: isActive ? '#fff' : '#545e6f',
-                        background: isActive ? '#0039a6' : '#f0f0f0',
-                    })} 
-                    to={`/today/${placeStore.weather}`} 
-                    className='Link'>Today</NavLink>
-                <NavLink 
-                    style=
-                    {({ isActive }) => ({
-                        color: isActive ? '#fff' : '#545e6f',
-                        background: isActive ? '#0039a6' : '#f0f0f0',
-                    })} 
-                    to={`/tommorow/${placeStore.weather}`} 
-                    className='Link'>Tommorow</NavLink>
-                <NavLink 
-                    style=
-                    {({ isActive }) => ({
-                        color: isActive ? '#fff' : '#545e6f',
-                        background: isActive ? '#0039a6' : '#f0f0f0',
-                    })} 
-                    to={`/weekly/${placeStore.weather}`} 
-                    className='Link'>Weekly</NavLink>
-                <NavLink 
-                    style=
-                    {({ isActive }) => ({
-                        color: isActive ? '#fff' : '#545e6f',
-                        background: isActive ? '#0039a6' : '#f0f0f0',
-                    })} 
-                    to={`/days-15/${placeStore.weather}`} 
-                    className='Link'>15Days</NavLink>                
-            </div>
-            {pleaseSignIn && <div><h1>PLEASE SIGN IN</h1></div>}
-            <button className='addplace' onClick={addPlace}>ADD TO MY PLACES +</button>
-       </div>
+        <section className='card'>
+            <form className='search-form' role='search' onSubmit={handleSearch}>
+                <input
+                    type='search'
+                    aria-label='City'
+                    value={placeStore.place}
+                    onChange={(e) => placeStore.setPlace(e.target.value)}
+                    placeholder='Search a city, e.g. Yerevan or London,UK'
+                />
+                <button type='submit' className='btn btn-primary' disabled={disableSearch}>
+                    Search
+                </button>
+                <button
+                    type='button'
+                    className='btn btn-ghost'
+                    onClick={locateMe}
+                    disabled={locating}
+                    title='Weather at my location'
+                    aria-label='Weather at my location'
+                >
+                    📍 <span className='hide-mobile'>{locating ? 'Locating…' : 'My location'}</span>
+                </button>
+            </form>
 
+            <div className='search-bottom'>
+                <nav className='tabs' aria-label='Forecast range'>
+                    {LINKS.map(({ path, label }) => (
+                        // NavLink adds class "active" to the tab of the current page
+                        <NavLink key={path} to={`/${path}/${placeStore.weather}`} className='tab'>
+                            {label}
+                        </NavLink>
+                    ))}
+                </nav>
+                <button type='button' className='btn btn-ghost' onClick={addPlace}>
+                    ☆ Save place
+                </button>
+            </div>
+
+            {message && <p className='search-message' role='status'>{message}</p>}
+        </section>
     );
-})
+});
 
 export default Search;
