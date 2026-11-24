@@ -6,6 +6,7 @@ const authRouter = require('./router/router');
 const cors = require('cors');
 const helmet = require('helmet');
 const { CLIENT_URLS } = require('./config');
+const { getEmailStatus } = require('./utils/mailer');
 
 const PORT = process.env.PORT || 5000;
 
@@ -21,7 +22,11 @@ app.use(helmet());
 
 // Hosting checks this to know the server is alive (Render "Health Check Path").
 app.get('/health', (req, res) => {
-    res.json({ ok: true, database: mongoose.connection.readyState === 1 ? 'connected' : 'not connected' });
+    res.json({
+        ok: true,
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'not connected',
+        email: getEmailStatus(),
+    });
 });
 
 app.use(cors({

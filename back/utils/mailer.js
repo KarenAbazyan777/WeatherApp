@@ -1,8 +1,33 @@
 const nodemailer = require('nodemailer');
 
-// With SMTP settings in .env the email is really sent.
-// Without them (local development) the link is printed to the console.
-const transporter = process.env.SMTP_HOST
+// How emails are sent, first match wins:
+//   1. BREVO_API_KEY set  -> Brevo HTTP API (port 443, works on any hosting)
+//   2. SMTP_HOST set      -> SMTP, e.g. Gmail (some free hostings block SMTP ports)
+//   3. nothing            -> local development: links are printed to the console
+//
+// MAIL_FROM (or SMTP_FROM) = sender shown to users, e.g.  Weather App <me@gmail.com>
+
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const FROM = process.env.MAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || '';
+const TIMEOUT_MS = 10000; // never make a user wait longer than this for an email
+
+const mode = BREVO_API_KEY ? 'brevo' : process.env.SMTP_HOST ? 'smtp' : 'console';
+
+// Current state, shown at GET /health:
+// "checking" | "ready" | "not configured (links in console)" | "login failed" | "unreachable: ..."
+let status = mode === 'console' ? 'not configured (links in console)' : 'checking';
+const setStatus = (value, log) => {
+    status = value;
+    log();
+};
+
+// "Weather App <me@gmail.com>" -> { name: "Weather App", email: "me@gmail.com" }
+const parseFrom = (from) => {
+    const m = from.match(/^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/);
+    return m ? { name: m[1] || undefined, email: m[2] } : { email: from.trim() };
+};
+
+const transporter = mode === 'smtp'
     ? nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT) || 587,
@@ -11,56 +36,101 @@ const transporter = process.env.SMTP_HOST
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS,
         },
+        connectionTimeout: TIMEOUT_MS,
+        greetingTimeout: TIMEOUT_MS,
+        socketTimeout: TIMEOUT_MS,
     })
     : null;
 
-// Tell the developer right away whether emails will really be sent.
-// A wrong password is a real error; a network hiccup at startup (DNS timeout,
-// slow connection) is not, so for those we try again a few times.
-const SMTP_CHECK_ATTEMPTS = 3;
-const SMTP_CHECK_DELAY_MS = 5000;
+// ---- startup check ---------------------------------------------------------
+// A wrong password/key is a real error; a network hiccup at startup is not,
+// so for those we try again a few times.
+const CHECK_ATTEMPTS = 3;
+const CHECK_DELAY_MS = 5000;
 
 const checkSmtp = (attempt = 1) => {
     transporter.verify()
-        .then(() => console.log(`📧 SMTP ready: emails are sent from ${process.env.SMTP_USER}`))
+        .then(() => setStatus('ready', () => console.log(`📧 Email ready (SMTP): sent from ${FROM}`)))
         .catch((err) => {
             if (err.code === 'EAUTH') {
-                console.error('❌ SMTP login failed: wrong SMTP_USER or SMTP_PASS (for Gmail use an App password).');
+                setStatus('login failed', () => console.error('❌ SMTP login failed: wrong SMTP_USER or SMTP_PASS (for Gmail use an App password).'));
                 return;
             }
-            if (attempt < SMTP_CHECK_ATTEMPTS) {
-                setTimeout(() => checkSmtp(attempt + 1), SMTP_CHECK_DELAY_MS);
+            if (attempt < CHECK_ATTEMPTS) {
+                setTimeout(() => checkSmtp(attempt + 1), CHECK_DELAY_MS);
                 return;
             }
-            console.warn(`⚠️  Could not reach the SMTP server to check it (${err.message}). Emails will still be tried when needed.`);
+            setStatus(`unreachable: ${err.message}`, () => console.warn(`⚠️  Could not reach the SMTP server (${err.message}). This hosting may block SMTP; set BREVO_API_KEY to send through the Brevo API instead.`));
         });
 };
 
-if (!transporter) {
-    console.warn('⚠️  SMTP is not set in .env: emails are NOT sent, links are printed here instead.');
-} else {
-    checkSmtp();
-}
+const checkBrevo = (attempt = 1) => {
+    fetch('https://api.brevo.com/v3/account', {
+        headers: { 'api-key': BREVO_API_KEY, accept: 'application/json' },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
+        .then((res) => {
+            if (res.ok) {
+                setStatus('ready', () => console.log(`📧 Email ready (Brevo API): sent from ${FROM}`));
+            } else if (res.status === 401) {
+                setStatus('login failed', () => console.error('❌ Brevo rejected BREVO_API_KEY. Create a new API key in Brevo.'));
+            } else {
+                throw new Error(`HTTP ${res.status}`);
+            }
+        })
+        .catch((err) => {
+            if (attempt < CHECK_ATTEMPTS) {
+                setTimeout(() => checkBrevo(attempt + 1), CHECK_DELAY_MS);
+                return;
+            }
+            setStatus(`unreachable: ${err.message}`, () => console.warn(`⚠️  Could not reach Brevo (${err.message}).`));
+        });
+};
+
+if (mode === 'brevo') checkBrevo();
+else if (mode === 'smtp') checkSmtp();
+else console.warn('⚠️  Email is not set in .env: emails are NOT sent, links are printed here instead.');
+
+// ---- sending ---------------------------------------------------------------
+const sendViaBrevo = async ({ to, subject, text, html }) => {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'api-key': BREVO_API_KEY, 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({
+            sender: parseFrom(FROM),
+            to: [{ email: to }],
+            subject,
+            textContent: text,
+            htmlContent: html,
+        }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`Brevo API ${res.status}: ${body.slice(0, 200)}`);
+    }
+};
 
 // One email = a short text + one button-link.
 const sendLinkEmail = async ({ to, subject, intro, buttonText, link, outro }) => {
-    if (!transporter) {
+    if (mode === 'console') {
         console.log(`📧 [dev] ${subject} for ${to}: ${link}`);
         return;
     }
 
-    await transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to,
-        subject,
-        text: `${intro}\n\n${link}\n\n${outro}`,
-        html: `<div style="font-family:Segoe UI,Arial,sans-serif;font-size:16px;color:#0f172a;max-width:480px">
+    const text = `${intro}\n\n${link}\n\n${outro}`;
+    const html = `<div style="font-family:Segoe UI,Arial,sans-serif;font-size:16px;color:#0f172a;max-width:480px">
                  <p>${intro}</p>
                  <p><a href="${link}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#1f6feb;color:#fff;text-decoration:none;font-weight:600">${buttonText}</a></p>
                  <p style="color:#475569;font-size:14px">Or open this link: <a href="${link}">${link}</a></p>
                  <p style="color:#475569;font-size:14px">${outro}</p>
-               </div>`,
-    });
+               </div>`;
+
+    if (mode === 'brevo') {
+        await sendViaBrevo({ to, subject, text, html });
+    } else {
+        await transporter.sendMail({ from: FROM, to, subject, text, html });
+    }
 };
 
 const sendPasswordResetEmail = (to, link) => sendLinkEmail({
@@ -81,4 +151,7 @@ const sendVerificationEmail = (to, name, link) => sendLinkEmail({
     outro: 'If you did not sign up, ignore this email.',
 });
 
-module.exports = { sendPasswordResetEmail, sendVerificationEmail };
+// For GET /health: which way emails go and whether it works.
+const getEmailStatus = () => ({ mode, status });
+
+module.exports = { sendPasswordResetEmail, sendVerificationEmail, getEmailStatus };
