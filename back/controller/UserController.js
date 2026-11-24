@@ -222,7 +222,10 @@ class UserController {
 
             const user = await User.findOne({useremail: useremail.toLowerCase().trim()});
             if (user && user.isVerified === false) {
-                await startEmailVerification(user);
+                const sent = await startEmailVerification(user);
+                if (!sent) {
+                    return res.status(503).json({message: "Could not send the email right now, please try again later"});
+                }
             }
             return res.json(answer);
         } catch (error) {
@@ -253,7 +256,12 @@ class UserController {
             await user.save();
 
             const link = `${CLIENT_URL}/resetpassword/${token}`;
-            await sendPasswordResetEmail(user.useremail, link);
+            try {
+                await sendPasswordResetEmail(user.useremail, link);
+            } catch (error) {
+                console.error(`❌ Could not send reset email: ${error.message}`);
+                return res.status(503).json({message: "Could not send the email right now, please try again later"});
+            }
 
             return res.json(answer);
         } catch (error) {
