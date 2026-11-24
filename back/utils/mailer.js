@@ -69,14 +69,19 @@ const checkBrevo = (attempt = 1) => {
         headers: { 'api-key': BREVO_API_KEY, accept: 'application/json' },
         signal: AbortSignal.timeout(TIMEOUT_MS),
     })
-        .then((res) => {
+        .then(async (res) => {
             if (res.ok) {
                 setStatus('ready', () => console.log(`📧 Email ready (Brevo API): sent from ${FROM}`));
-            } else if (res.status === 401) {
-                setStatus('login failed', () => console.error('❌ Brevo rejected BREVO_API_KEY. Create a new API key in Brevo.'));
-            } else {
-                throw new Error(`HTTP ${res.status}`);
+                return;
             }
+            // Brevo explains the reason in the body, e.g. an unrecognised IP address
+            const body = await res.json().catch(() => ({}));
+            const reason = `HTTP ${res.status}${body.message ? `: ${body.message}` : ''}`;
+            if (res.status === 401 || res.status === 403) {
+                setStatus(`rejected: ${reason}`, () => console.error(`❌ Brevo rejected the request (${reason}).`));
+                return;
+            }
+            throw new Error(reason);
         })
         .catch((err) => {
             if (attempt < CHECK_ATTEMPTS) {
