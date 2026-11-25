@@ -90,12 +90,14 @@ The frontend calls the weather APIs directly; the backend only handles accounts,
 
 ```
 back/                     Node + Express API
-  index.js                server setup: security headers, CORS, routes, error handler
+  index.js                start: read .env, connect to MongoDB, open the port
+  app.js                  the Express app: security headers, CORS, routes, error handler
   router/router.js        routes + which ones need login / rate limits
   controller/             request handlers (sign up, sign in, places, emails...)
   models/User.js          Mongoose schema
   middleware/             JWT check, rate limits
   utils/mailer.js         email via Brevo API, SMTP or console
+  tests/api.test.js       end-to-end API tests on an in-memory MongoDB
 front/                    React app
   src/components/         pages and UI pieces
   src/helpers/hooks/      useWeather (cache), usePlace, useCitySuggestions
@@ -130,6 +132,22 @@ Email is optional: without it, confirmation and password-reset links are printed
 
 ## Tests
 
+**Backend – 28 end-to-end tests** (Node's built-in test runner, a real Express app on an in-memory MongoDB, no external database needed):
+
+```bash
+cd back
+npm test
+```
+
+- **Sign up and email confirmation** – one-time links, “send again” replaces the old link, accounts created before confirmation existed still work
+- **Sign in** – same answer for a wrong password and an unknown email, case-insensitive email
+- **Protected routes** – need a valid JWT; the password hash and tokens are never sent
+- **Saved places** – duplicates refused; 10 parallel requests: exactly one saved for the same place, none lost for different places
+- **Password reset** – one-time token, old password stops working
+- **Hardening** – NoSQL-injection attempts, broken JSON, oversized bodies, security headers, and the brute-force limit (429 after 10 failed sign-ins)
+
+**Frontend – 7 tests** (Jest + React Testing Library):
+
 ```bash
 cd front
 npm test
@@ -153,3 +171,5 @@ Every push to `main` deploys both parts automatically.
 ## Author
 
 **Karen Abazyan** · [GitHub](https://github.com/KarenAbazyan777)
+
+I used an AI assistant to help with some parts of the project.
