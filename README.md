@@ -2,7 +2,7 @@
 
 A full-stack weather app: current conditions, hourly forecasts for today and tomorrow, and a 15-day outlook for any city in the world. Users can create an account (with email confirmation) and save their favourite places.
 
-**🔗 Live demo: [weather-app-seven-eosin-90.vercel.app](https://weather-app-seven-eosin-90.vercel.app)**
+**🔗 Live demo: [yeghanak.vercel.app](https://yeghanak.vercel.app)**  ·  *yeghanak* (եղանակ) is Armenian for “weather”
 
 <p>
   <img src="docs/screenshots/now.png" alt="Current weather in Yerevan" width="49%">
