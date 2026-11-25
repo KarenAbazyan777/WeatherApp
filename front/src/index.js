@@ -7,6 +7,7 @@ import PlaceStore from './state/placeStore';
 import Weather from './state/Weather';
 import UserInfo from './state/UserInfo';
 import Settings from './state/Settings';
+import { wakeUpBackend } from './helpers/constants/api';
 
 configure({
     useProxies: 'never',
@@ -20,6 +21,9 @@ const stores = {
     userinfo: new UserInfo(),
     settings: new Settings(),
 };
+
+// Start waking the backend now, while the user is still looking at the weather.
+wakeUpBackend();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

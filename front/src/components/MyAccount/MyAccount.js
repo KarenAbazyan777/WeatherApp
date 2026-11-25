@@ -12,11 +12,16 @@ const MyAccount = observer(() => {
 
     const navigate = useNavigate();
     const {userinfo} = useContext(Context);
-    const {currentWeather} = useContext(Context);
     const {placeStore} = useContext(Context);
     const [showPopup,setShowPopup] = useState(false);
 
     const [error,setError] = useState('');
+    // This page's own loading state (not shared with the weather pages)
+    const [loading,setLoading] = useState(true);
+    // true after a few seconds of waiting: explain that the server is waking up
+    const [slow,setSlow] = useState(false);
+    // "Try again" increases this, which runs the loading effect again
+    const [attempt,setAttempt] = useState(0);
 
     const handleError = (err)=>{
         if(err.status === 401){
@@ -30,19 +35,36 @@ const MyAccount = observer(() => {
     useEffect (()=>{
         if(!isLoggedIn()){
             navigate('/signin');
-            return;
+            return undefined;
         }
         setError('');
-        currentWeather.setIsLoading(true);
+        setLoading(true);
+        setSlow(false);
+
+        const controller = new AbortController();
+        let timedOut = false;
+        // After 4 s tell the user why it takes long; after 75 s stop waiting.
+        const slowTimer = setTimeout(()=> setSlow(true), 4000);
+        const timeoutTimer = setTimeout(()=>{
+            timedOut = true;
+            controller.abort();
+        }, 75000);
+
         fetch(`${API_URL}/myaccount`,{
             method:"GET",
             headers: authHeaders(),
+            signal: controller.signal,
         })
         .then(res=> res.ok ? res.json() : rejectWithStatus(res))
         .then(result=>{
             userinfo.setAccountInfo(result);
         })
         .catch(err=>{
+            if(err.name === 'AbortError'){
+                // aborted by the 75 s timeout -> show an error; aborted because we left the page -> nothing
+                if(timedOut) setError('The server did not answer in time');
+                return;
+            }
             if(err.status === 401){
                 logout(userinfo);
                 navigate('/signin');
@@ -50,8 +72,19 @@ const MyAccount = observer(() => {
             }
             setError(err.message || 'Something went wrong');
         })
-        .finally(()=> currentWeather.setIsLoading(false));
-   },[currentWeather, userinfo, navigate])
+        .finally(()=>{
+            clearTimeout(slowTimer);
+            clearTimeout(timeoutTimer);
+            setLoading(false);
+        });
+
+        // Leaving the page cancels the request and both timers
+        return ()=>{
+            clearTimeout(slowTimer);
+            clearTimeout(timeoutTimer);
+            controller.abort();
+        };
+   },[userinfo, navigate, attempt])
 
    const deletePlace = (place)=>{
     // Remove it from the screen right away; undo if the server says no.
@@ -86,8 +119,18 @@ const MyAccount = observer(() => {
    }
 
 
-    if(currentWeather.isLoading){
-        return <Loading />;
+    if(loading){
+        return (
+            <main className='page'>
+                <Loading />
+                {slow && (
+                    <p className='waking-note' role='status'>
+                        Waking up the server… On the free hosting plan this can take up to a minute
+                        after a quiet period. Thanks for waiting!
+                    </p>
+                )}
+            </main>
+        );
     }
 
     if(error && !userinfo.accountInfo){
@@ -95,6 +138,9 @@ const MyAccount = observer(() => {
             <main className='page'>
                 <section className='card account'>
                     <p className='error-text'>{error}</p>
+                    <button type='button' className='btn btn-primary' onClick={()=>setAttempt((n)=>n+1)}>
+                        Try again
+                    </button>
                 </section>
             </main>
         );

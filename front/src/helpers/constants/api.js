@@ -5,6 +5,15 @@ export const jsonHeaders = {
     'Content-Type': 'application/json; charset=utf-8',
 };
 
+// The backend runs on Render's free plan, which sleeps after 15 minutes without
+// visitors and needs up to a minute to wake up. Pinging it as soon as the site
+// opens means it is usually awake by the time the user signs in or opens My account.
+export const wakeUpBackend = () => {
+    fetch(API_URL.replace(/\/auth\/?$/, '') + '/health').catch(() => {
+        // ignore: this is only a warm-up, real requests report their own errors
+    });
+};
+
 export const authHeaders = () => ({
     ...jsonHeaders,
     'Authorization': `Bearer ${localStorage.getItem('token')}`,
