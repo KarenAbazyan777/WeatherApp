@@ -4,10 +4,11 @@ import { MemoryRouter } from 'react-router-dom';
 import Context from '../../context';
 import UserInfo from '../../state/UserInfo';
 import PlaceStore from '../../state/placeStore';
+import Settings from '../../state/Settings';
 import MyAccount from './MyAccount';
 
 const renderPage = () => render(
-    <Context.Provider value={{ userinfo: new UserInfo(), placeStore: new PlaceStore() }}>
+    <Context.Provider value={{ userinfo: new UserInfo(), placeStore: new PlaceStore(), settings: new Settings() }}>
         <MemoryRouter>
             <MyAccount />
         </MemoryRouter>

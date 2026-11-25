@@ -5,18 +5,20 @@ import Context from '../../context';
 import { API_URL, authHeaders, weatherUrls } from '../../helpers/constants/api';
 import { isLoggedIn, logout, rejectWithStatus } from '../../helpers/auth';
 import { useCitySuggestions } from '../../helpers/hooks/useCitySuggestions';
+import { useT } from '../../i18n';
 
-// Tabs under the search box: URL part + text on the button.
+// Tabs under the search box: URL part + translation key of the text on the button.
 const LINKS = [
-    { path: 'now', label: 'Now' },
-    { path: 'today', label: 'Today' },
-    { path: 'tommorow', label: 'Tomorrow' },
-    { path: 'weekly', label: 'Weekly' },
-    { path: 'days-15', label: '15 Days' },
+    { path: 'now', label: 'search.tabs.now' },
+    { path: 'today', label: 'search.tabs.today' },
+    { path: 'tommorow', label: 'search.tabs.tomorrow' },
+    { path: 'weekly', label: 'search.tabs.weekly' },
+    { path: 'days-15', label: 'search.tabs.days15' },
 ];
 
 const Search = observer(({ navigetion }) => {
     const { placeStore, userinfo } = useContext(Context);
+    const { t } = useT();
     const [message, setMessage] = useState('');
     const [locating, setLocating] = useState(false);
 
@@ -79,7 +81,7 @@ const Search = observer(({ navigetion }) => {
     // "My location": browser coordinates -> city name -> that city's weather
     const locateMe = () => {
         if (!navigator.geolocation) {
-            return setMessage('Your browser cannot share its location');
+            return setMessage(t('search.noGeo'));
         }
         setLocating(true);
         navigator.geolocation.getCurrentPosition(
@@ -101,8 +103,8 @@ const Search = observer(({ navigetion }) => {
             (error) => {
                 setLocating(false);
                 setMessage(error.code === error.PERMISSION_DENIED
-                    ? 'Location access was blocked. Allow it in the browser to use this.'
-                    : 'Could not get your location, try again');
+                    ? t('search.geoBlocked')
+                    : t('search.geoFailed'));
             },
             { timeout: 10000, maximumAge: 10 * 60 * 1000 }
         );
@@ -110,7 +112,7 @@ const Search = observer(({ navigetion }) => {
 
     const addPlace = () => {
         if (!(userinfo.isAuth || isLoggedIn())) {
-            return setMessage('Sign in to save places');
+            return setMessage(t('search.signInToSave'));
         }
         fetch(`${API_URL}/places`, {
             method: 'POST',
@@ -118,13 +120,13 @@ const Search = observer(({ navigetion }) => {
             body: JSON.stringify({ place: placeStore.weather.toUpperCase() }),
         })
             .then((res) => (res.ok ? res.json() : rejectWithStatus(res)))
-            .then(() => setMessage('Added to your places ✓'))
+            .then(() => setMessage(t('search.added')))
             .catch((error) => {
                 if (error.status === 401) {
                     logout(userinfo);
-                    return setMessage('Session expired, please sign in again');
+                    return setMessage(t('search.sessionExpired'));
                 }
-                setMessage(error.message || 'Something went wrong');
+                setMessage(error.status === 409 ? t('search.added') : t('common.somethingWrong'));
             });
     };
 
@@ -135,7 +137,7 @@ const Search = observer(({ navigetion }) => {
                     <input
                         type='search'
                         role='combobox'
-                        aria-label='City'
+                        aria-label={t('search.city')}
                         aria-autocomplete='list'
                         aria-expanded={showList}
                         aria-controls='city-suggestions'
@@ -149,7 +151,7 @@ const Search = observer(({ navigetion }) => {
                         onKeyDown={handleKeyDown}
                         onFocus={() => setOpen(true)}
                         onBlur={() => setOpen(false)}
-                        placeholder='Search a city, e.g. Yerevan or London,UK'
+                        placeholder={t('search.placeholder')}
                     />
 
                     {showList && (
@@ -179,31 +181,31 @@ const Search = observer(({ navigetion }) => {
                     )}
                 </div>
                 <button type='submit' className='btn btn-primary' disabled={disableSearch}>
-                    Search
+                    {t('search.search')}
                 </button>
                 <button
                     type='button'
                     className='btn btn-ghost'
                     onClick={locateMe}
                     disabled={locating}
-                    title='Weather at my location'
-                    aria-label='Weather at my location'
+                    title={t('search.locationTitle')}
+                    aria-label={t('search.locationTitle')}
                 >
-                    📍 <span className='hide-mobile'>{locating ? 'Locating…' : 'My location'}</span>
+                    📍 <span className='hide-mobile'>{locating ? t('search.locating') : t('search.myLocation')}</span>
                 </button>
             </form>
 
             <div className='search-bottom'>
-                <nav className='tabs' aria-label='Forecast range'>
+                <nav className='tabs' aria-label={t('search.rangeLabel')}>
                     {LINKS.map(({ path, label }) => (
                         // NavLink adds class "active" to the tab of the current page
                         <NavLink key={path} to={`/${path}/${placeStore.weather}`} className='tab'>
-                            {label}
+                            {t(label)}
                         </NavLink>
                     ))}
                 </nav>
                 <button type='button' className='btn btn-ghost' onClick={addPlace}>
-                    ☆ Save place
+                    {t('search.savePlace')}
                 </button>
             </div>
 

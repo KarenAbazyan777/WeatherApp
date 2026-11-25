@@ -16,6 +16,11 @@ import Context from '../../context';
 import { observer } from 'mobx-react-lite';
 import { useNavigate } from 'react-router-dom';
 import { API_URL, jsonHeaders } from '../../helpers/constants/api';
+import { rejectWithStatus } from '../../helpers/auth';
+import { useT } from '../../i18n';
+
+// HTTP status from the server -> translation key of the message to show
+const SIGNIN_ERRORS = { 400: 'auth.invalidLogin', 401: 'auth.invalidLogin', 429: 'common.tooMany' };
 
 
 
@@ -25,11 +30,13 @@ const  SignIn = observer(()=>{
   const navigate = useNavigate();
 
   const {userinfo} = useContext(Context);
+  const { t } = useT();
 
   const handleInput = (e)=>{
     userinfo.setLoginUser(e.target.name,e.target.value);
 }
 
+// translation keys (e.g. 'auth.invalidLogin'), translated when shown
 const loginError = userinfo.loginError;
 
 // Signed in with a correct password, but the email is not confirmed yet
@@ -37,15 +44,14 @@ const [needsVerify, setNeedsVerify] = useState(false);
 const [resendMessage, setResendMessage] = useState('');
 
 const resendEmail = ()=>{
-  setResendMessage('Sending…');
+  setResendMessage('auth.sending');
   fetch(`${API_URL}/resendverification`,{
      method:"POST",
      headers: jsonHeaders,
      body:JSON.stringify({useremail: userinfo.loginuser.useremail})
   })
-  .then((res)=>res.json())
-  .then((result)=>setResendMessage(result.message || 'Done'))
-  .catch(()=>setResendMessage('Could not send the email, try again'));
+  .then((res)=>setResendMessage(res.ok ? 'auth.resendDone' : res.status === 429 ? 'common.tooMany' : 'common.emailFailed'))
+  .catch(()=>setResendMessage('common.emailFailed'));
 }
 
 useEffect(() => {
@@ -62,12 +68,7 @@ useEffect(() => {
        method:"POST",
        headers: jsonHeaders,
        body:JSON.stringify(toJS(userinfo.loginuser))
-    }).then((res)=>{
-      if(!res.ok){
-        return res.json().then(err => Promise.reject(err));
-      }
-      return res.json();
-    })
+    }).then((res)=> res.ok ? res.json() : rejectWithStatus(res))
     .then((response)=>{
       localStorage.setItem('token',response.token);
       localStorage.setItem('email',response.useremail);
@@ -82,24 +83,24 @@ useEffect(() => {
         return;
       }
       setNeedsVerify(false);
-      userinfo.setLoginError(e.message);
+      userinfo.setLoginError(SIGNIN_ERRORS[e.status] || 'common.somethingWrong');
     });
 }
 
   return (
         <div className='auth-page'>
-        {loginError && <div className='alert alert-error' role='alert'>{loginError}</div>}
+        {loginError && <div className='alert alert-error' role='alert'>{t(loginError)}</div>}
         {userinfo.iscreated && !needsVerify && (
           <div className='alert alert-success' role='status'>
-            Account created! We sent a confirmation link to your email. Open it, then sign in here.
+            {t('auth.created')}
           </div>
         )}
         {needsVerify && (
           <div className='alert alert-warning' role='alert'>
-            <p>Please confirm your email first. Check your inbox (and spam folder) for the link.</p>
+            <p>{t('auth.confirmFirst')}</p>
             {resendMessage
-              ? <p className='alert-note'>{resendMessage}</p>
-              : <button type='button' className='btn btn-primary' onClick={resendEmail}>Send the link again</button>}
+              ? <p className='alert-note'>{t(resendMessage)}</p>
+              : <button type='button' className='btn btn-primary' onClick={resendEmail}>{t('auth.sendAgain')}</button>}
           </div>
         )}
       <ThemeProvider theme={theme}>
@@ -117,7 +118,7 @@ useEffect(() => {
             <LockOutlinedIcon />
           </Avatar>
           <Typography component="h1" variant="h5">
-            Sign in
+            {t('auth.signInTitle')}
           </Typography>
           <Box component="form"  noValidate sx={{ mt: 1 }}>
             <TextField  
@@ -125,7 +126,7 @@ useEffect(() => {
               required
               fullWidth
               id="email"
-              label="Email Address"
+              label={t('auth.email')}
               name="useremail"
               autoComplete="email"
               autoFocus
@@ -136,7 +137,7 @@ useEffect(() => {
               required
               fullWidth
               name="userpassword"
-              label="Password"
+              label={t('auth.password')}
               type="password"
               id="password"
               autoComplete="current-password"
@@ -148,17 +149,17 @@ useEffect(() => {
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
             >
-              Sign In
+              {t('auth.signInButton')}
             </Button>
             <Grid container>
               <Grid item xs>
                 <Link href={'/forgotpassword'} variant="body2">
-                  Forgot password?
+                  {t('auth.forgot')}
                 </Link>
               </Grid>
               <Grid item>
                 <Link href={`/signup`} variant="body2">
-                  {"Don't have an account? Sign Up"}
+                  {t('auth.noAccount')}
                 </Link>
               </Grid>
             </Grid>

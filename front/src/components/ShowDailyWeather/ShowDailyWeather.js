@@ -7,13 +7,15 @@ import { HourlyForecast } from '../Forecast/Forecast';
 import { usePlace, useWeather } from '../../helpers/hooks/weatherHooks';
 import { weatherUrls, weatherIcon } from '../../helpers/constants/api';
 import { formatDay, getSky, round, useTemp } from '../../helpers/format';
+import { translateCondition, useT } from '../../i18n';
 
 const ShowDailyWeather = observer(() => {
     const { placeStore } = useContext(Context);
     const { date } = useParams();
     const navigate = useNavigate();
     const place = usePlace();
-    const t = useTemp();
+    const temp = useTemp();
+    const { t, lang, locale } = useT();
 
     // Same request as Weekly / 15 Days: the day is picked from that data.
     const { isLoading, data: item } = useWeather(weatherUrls.timeline(place));
@@ -31,7 +33,7 @@ const ShowDailyWeather = observer(() => {
     const day = item.days.find((d) => d.datetime === date);
     const back = (
         <NavLink to={`/days-15/${placeStore.weather}`} className='btn btn-ghost back-link'>
-            ← All 15 days
+            {t('weather.allDays')}
         </NavLink>
     );
 
@@ -40,8 +42,8 @@ const ShowDailyWeather = observer(() => {
             <WeatherPage navigetion={navigetion}>
                 {back}
                 <section className='card'>
-                    <h1 className='section-title'>No forecast for {date}</h1>
-                    <p className='muted'>Pick a day from the 15-day forecast.</p>
+                    <h1 className='section-title'>{t('weather.noForecast', { date })}</h1>
+                    <p className='muted'>{t('weather.pickDay')}</p>
                 </section>
             </WeatherPage>
         );
@@ -64,13 +66,13 @@ const ShowDailyWeather = observer(() => {
             {back}
             <section className='card'>
                 <div className='section-head'>
-                    <h1 className='section-title'>{formatDay(day.datetime).long}</h1>
+                    <h1 className='section-title'>{formatDay(day.datetime, locale).long}</h1>
                     <p className='muted'>{item.resolvedAddress}</p>
                 </div>
                 <div className='summary'>
-                    <span className='pill'>{day.conditions}</span>
-                    <span className='pill'>High {t(day.tempmax)} · Low {t(day.tempmin)}</span>
-                    <span className='pill'>Rain chance {round(day.precipprob || 0)}%</span>
+                    <span className='pill'>{translateCondition(day.conditions, lang)}</span>
+                    <span className='pill'>{t('weather.highLow', { high: temp(day.tempmax), low: temp(day.tempmin) })}</span>
+                    <span className='pill'>{t('weather.rainChance', { percent: round(day.precipprob || 0) })}</span>
                 </div>
                 <HourlyForecast hours={hours} />
             </section>

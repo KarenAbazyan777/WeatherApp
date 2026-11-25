@@ -1,4 +1,27 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
+import { useT } from '../../i18n';
+
+// The message itself is a small function component, so it can use the
+// translation hook (hooks don't work inside class components).
+const CrashMessage = observer(() => {
+    const { t } = useT();
+    return (
+        <main className='notfound'>
+            <section className='card'>
+                <div className='verify-icon fail' aria-hidden='true'>!</div>
+                <h1 className='section-title'>{t('crash.title')}</h1>
+                <p>{t('crash.text')}</p>
+                <div className='modal-actions'>
+                    <button type='button' className='btn btn-primary' onClick={() => window.location.reload()}>
+                        {t('common.reload')}
+                    </button>
+                    <a href='/' className='btn btn-ghost'>{t('common.home')}</a>
+                </div>
+            </section>
+        </main>
+    );
+});
 
 // If any page crashes while rendering, React would normally remove the whole
 // app and leave a blank screen. This catches the error and shows a message
@@ -16,24 +39,7 @@ class ErrorBoundary extends React.Component {
     }
 
     render() {
-        if (!this.state.hasError) {
-            return this.props.children;
-        }
-        return (
-            <main className='notfound'>
-                <section className='card'>
-                    <div className='verify-icon fail' aria-hidden='true'>!</div>
-                    <h1 className='section-title'>Something went wrong</h1>
-                    <p>Sorry, this page stopped working. Reloading usually fixes it.</p>
-                    <div className='modal-actions'>
-                        <button type='button' className='btn btn-primary' onClick={() => window.location.reload()}>
-                            Reload
-                        </button>
-                        <a href='/' className='btn btn-ghost'>Home</a>
-                    </div>
-                </section>
-            </main>
-        );
+        return this.state.hasError ? <CrashMessage /> : this.props.children;
     }
 }
 

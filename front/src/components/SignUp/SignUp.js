@@ -18,6 +18,7 @@ import Context from '../../context'
 import { observer } from 'mobx-react-lite';
 import { toJS } from 'mobx';
 import { useNavigate } from 'react-router-dom';
+import { useT } from '../../i18n';
 import { API_URL, jsonHeaders } from '../../helpers/constants/api';
 
 
@@ -27,6 +28,7 @@ const SignUp = observer(() =>{
   
   const navigate = useNavigate();
   const {userinfo} = useContext(Context);
+  const { t } = useT();
 
   const {username,userlname,useremail,userpassword} = userinfo.user;
   const isDisabled = useMemo(() => {
@@ -72,7 +74,7 @@ const SignUp = observer(() =>{
 }
   return (
       <div className='auth-page'>
-        {userinfo.signupError && <div className='alert alert-error' role='alert'>A user with this email already exists.</div>}
+        {userinfo.signupError && <div className='alert alert-error' role='alert'>{t('auth.emailTaken')}</div>}
             <ThemeProvider theme={theme}>
       <Container component="main" maxWidth="xs">
         <CssBaseline />
@@ -88,7 +90,7 @@ const SignUp = observer(() =>{
             <LockOutlinedIcon />
           </Avatar>
           <Typography component="h1" variant="h5">
-            Sign up
+            {t('auth.signUpTitle')}
           </Typography>
           <Box component="form" noValidate sx={{ mt: 3 }}>
             <Grid container spacing={2}>
@@ -99,7 +101,7 @@ const SignUp = observer(() =>{
                   required
                   fullWidth
                   id="firstName"
-                  label="First Name"
+                  label={t('auth.firstName')}
                   autoFocus
                   onChange={handleInput}
                 />
@@ -109,7 +111,7 @@ const SignUp = observer(() =>{
                   required
                   fullWidth
                   id="lastname"
-                  label="Last Name"
+                  label={t('auth.lastName')}
                   name="userlname"
                   autoComplete="family-name"
                   onChange={handleInput}
@@ -120,7 +122,7 @@ const SignUp = observer(() =>{
                   required
                   fullWidth
                   id="email"
-                  label="Email Address"
+                  label={t('auth.email')}
                   name="useremail"
                   autoComplete="email"
                   onChange={handleInput}
@@ -131,7 +133,8 @@ const SignUp = observer(() =>{
                   required
                   fullWidth
                   name="userpassword"
-                  label="Password"
+                  label={t('auth.password')}
+                  helperText={t('auth.passwordHint')}
                   type="password"
                   id="password"
                   autoComplete="new-password"
@@ -141,7 +144,7 @@ const SignUp = observer(() =>{
               <Grid item xs={12}>
                 <FormControlLabel disableTypography
                   control={<Checkbox value="allowExtraEmails" color="primary" />}
-                  label="I want to receive inspiration, marketing promotions and updates via email."
+                  label={t('auth.marketing')}
                 />
               </Grid>
             </Grid>
@@ -152,12 +155,12 @@ const SignUp = observer(() =>{
               disabled={isDisabled}
               sx={{ mt: 3, mb: 2 }}
             >
-              Sign Up
+              {t('auth.signUpButton')}
             </Button>
             <Grid container justifyContent="flex-end">
               <Grid item>
                 <Link href={`/signin`} variant="body2">
-                  Already have an account? Sign in
+                  {t('auth.haveAccount')}
                 </Link>
               </Grid>
             </Grid>

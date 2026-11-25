@@ -7,14 +7,17 @@ import { HourlyForecast } from './Forecast';
 import { usePlace, useWeather } from '../../helpers/hooks/weatherHooks';
 import { weatherUrls } from '../../helpers/constants/api';
 import { absoluteUrl, formatDay, getSky, useTemp } from '../../helpers/format';
+import { translateCondition, useT } from '../../i18n';
 
 // Today and Tomorrow pages: same request (2 days, shared via cache),
 // they only differ in which day they show.
-const HourlyDayPage = observer(({ dayIndex, path, label }) => {
+// titleKey: 'weather.todayIn' or 'weather.tomorrowIn'
+const HourlyDayPage = observer(({ dayIndex, path, titleKey }) => {
     const { placeStore } = useContext(Context);
     const navigate = useNavigate();
     const place = usePlace();
-    const t = useTemp();
+    const temp = useTemp();
+    const { t, lang, locale } = useT();
     const { isLoading, data: item } = useWeather(weatherUrls.forecast(place, 2));
 
     const navigetion = () => navigate(`/${path}/${placeStore.weather}`);
@@ -43,18 +46,19 @@ const HourlyDayPage = observer(({ dayIndex, path, label }) => {
     const { location } = item;
 
     return (
+        // getSky gets the English text: the background works the same in every language
         <WeatherPage navigetion={navigetion} sky={getSky(day.day.condition.text)}>
             <section className='card'>
                 <div className='section-head'>
-                    <h1 className='section-title'>{label} in {location.name}</h1>
+                    <h1 className='section-title'>{t(titleKey, { city: location.name })}</h1>
                     <p className='muted'>
-                        {location.region ? `${location.region}, ` : ''}{location.country} · {formatDay(day.date).long}
+                        {location.region ? `${location.region}, ` : ''}{location.country} · {formatDay(day.date, locale).long}
                     </p>
                 </div>
                 <div className='summary'>
-                    <span className='pill'>{day.day.condition.text}</span>
-                    <span className='pill'>High {t(day.day.maxtemp_c)} · Low {t(day.day.mintemp_c)}</span>
-                    <span className='pill'>Rain chance {day.day.daily_chance_of_rain}%</span>
+                    <span className='pill'>{translateCondition(day.day.condition.text, lang)}</span>
+                    <span className='pill'>{t('weather.highLow', { high: temp(day.day.maxtemp_c), low: temp(day.day.mintemp_c) })}</span>
+                    <span className='pill'>{t('weather.rainChance', { percent: day.day.daily_chance_of_rain })}</span>
                 </div>
                 <HourlyForecast hours={hours} />
             </section>

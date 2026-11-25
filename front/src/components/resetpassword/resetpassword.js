@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { observer } from 'mobx-react-lite';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -13,14 +14,16 @@ import { isValidPassword } from '../../helpers/validation';
 import { useNavigate, useParams } from 'react-router-dom';
 import { API_URL, jsonHeaders } from '../../helpers/constants/api';
 import { rejectWithStatus } from '../../helpers/auth';
+import { useT } from '../../i18n';
 
 
-const Resetpassword = () => {
+const Resetpassword = observer(() => {
+    const { t } = useT();
     const { token } = useParams();
     const navigate = useNavigate();
     const [userpassword, setPassword] = useState('');
     const [confirmpassword, setConfirmPassword] = useState('');
-    const [error, setError] = useState('');
+    const [error, setError] = useState(''); // translation key, translated when shown
     const [sending, setSending] = useState(false);
 
     const isDisabled = sending || userpassword !== confirmpassword || !isValidPassword(userpassword);
@@ -37,7 +40,7 @@ const Resetpassword = () => {
         })
             .then((res) => (res.ok ? res.json() : rejectWithStatus(res)))
             .then(() => navigate('/signin'))
-            .catch((err) => setError(err.message || 'Something went wrong'))
+            .catch((err) => setError(err.status === 400 ? 'auth.linkExpired' : err.status === 429 ? 'common.tooMany' : 'common.somethingWrong'))
             .finally(() => setSending(false));
     };
 
@@ -51,7 +54,7 @@ const Resetpassword = () => {
                             <LockOutlinedIcon />
                         </Avatar>
                         <Typography component="h1" variant="h5">
-                            Set a new password
+                            {t('auth.newPasswordTitle')}
                         </Typography>
                         <Box component="form" noValidate sx={{ mt: 1 }} onSubmit={changePassword}>
                             <TextField
@@ -59,12 +62,12 @@ const Resetpassword = () => {
                                 margin="normal"
                                 required
                                 fullWidth
-                                label="New password"
+                                label={t('auth.newPassword')}
                                 type="password"
                                 id="password"
                                 autoComplete="new-password"
                                 autoFocus
-                                helperText="At least 6 characters, mix of letters and numbers or cases"
+                                helperText={t('auth.passwordHint')}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
                             <TextField
@@ -72,16 +75,16 @@ const Resetpassword = () => {
                                 margin="normal"
                                 required
                                 fullWidth
-                                label="Confirm password"
+                                label={t('auth.confirmPassword')}
                                 type="password"
                                 id="confirmpassword"
                                 autoComplete="new-password"
                                 error={confirmpassword.length > 0 && confirmpassword !== userpassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                             />
-                            {error && <Typography color="error">{error}</Typography>}
+                            {error && <Typography color="error">{t(error)}</Typography>}
                             <Button type="submit" disabled={isDisabled} fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-                                {sending ? 'Saving...' : 'Change password'}
+                                {sending ? t('auth.saving') : t('auth.changePassword')}
                             </Button>
                         </Box>
                     </Box>
@@ -89,6 +92,6 @@ const Resetpassword = () => {
             </ThemeProvider>
         </div>
     );
-};
+});
 
 export default Resetpassword;

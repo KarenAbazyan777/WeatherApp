@@ -30,20 +30,40 @@ export const getSky = (text = '', isNight = false) => {
     return 'clear';
 };
 
+// Armenian month and weekday names. Browsers like Chrome ship without Armenian
+// date data (Intl falls back to English), so for "hy-AM" we format dates ourselves.
+export const HY = {
+    weekdays: ['կիրակի', 'երկուշաբթի', 'երեքշաբթի', 'չորեքշաբթի', 'հինգշաբթի', 'ուրբաթ', 'շաբաթ'],
+    weekdaysShort: ['կիր', 'երկ', 'երք', 'չրք', 'հնգ', 'ուրբ', 'շբթ'],
+    // genitive form, as used in dates: "նոյեմբերի 25"
+    months: ['հունվարի', 'փետրվարի', 'մարտի', 'ապրիլի', 'մայիսի', 'հունիսի',
+        'հուլիսի', 'օգոստոսի', 'սեպտեմբերի', 'հոկտեմբերի', 'նոյեմբերի', 'դեկտեմբերի'],
+    monthsShort: ['հնվ', 'փտվ', 'մրտ', 'ապր', 'մյս', 'հնս', 'հլս', 'օգս', 'սպտ', 'հկտ', 'նյմ', 'դկտ'],
+};
+
 // "2026-11-24" -> { weekday: "Tue", short: "Nov 24", long: "Tuesday, November 24" }
+// locale ("en-US", "ru-RU", "hy-AM") decides the language of month and weekday names.
 // Noon is used so the date never shifts to the day before in any time zone.
-export const formatDay = (isoDate) => {
+export const formatDay = (isoDate, locale = 'en-US') => {
     const d = new Date(`${isoDate}T12:00:00`);
+    if (locale.startsWith('hy')) {
+        return {
+            weekday: HY.weekdaysShort[d.getDay()],
+            short: `${d.getDate()} ${HY.monthsShort[d.getMonth()]}`,
+            long: `${HY.weekdays[d.getDay()]}, ${HY.months[d.getMonth()]} ${d.getDate()}`,
+        };
+    }
     return {
-        weekday: d.toLocaleDateString('en-US', { weekday: 'short' }),
-        short: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        long: d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+        weekday: d.toLocaleDateString(locale, { weekday: 'short' }),
+        short: d.toLocaleDateString(locale, { month: 'short', day: 'numeric' }),
+        long: d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' }),
     };
 };
 
-// Wind direction in degrees -> compass point (0 = N, 90 = E, ...)
-export const windDirection = (deg) =>
-    ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(deg / 45) % 8];
+// Wind direction in degrees -> compass point (0 = N, 90 = E, ...).
+// names: the 8 directions in the current language, e.g. t('weather.dirs') = "N,NE,E,..."
+export const windDirection = (deg, names = 'N,NE,E,SE,S,SW,W,NW') =>
+    names.split(',')[Math.round(deg / 45) % 8];
 
 // weatherapi returns icons as "//cdn.weatherapi.com/..."
 export const absoluteUrl = (url) => (url.startsWith('//') ? `https:${url}` : url);

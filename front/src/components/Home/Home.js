@@ -1,81 +1,66 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { observer } from 'mobx-react-lite';
 import logo from '../../helpers/images/home.png';
+import { useT } from '../../i18n';
 
-// "What I used" section: group title + [technology, what it does here]
+// "What I used" section: group key + [technology name, key of its purpose text].
+// Technology names stay in English (they are product names); purposes are translated.
 const STACK = [
     {
-        title: 'Frontend',
-        items: [
-            ['React 18', 'components, hooks, lazy-loaded pages'],
-            ['React Router 6', 'pages and shareable URLs like /now/Yerevan'],
-            ['MobX', 'app state: search, loading, signed-in user'],
-            ['Material UI', 'sign-in, sign-up and password forms'],
-        ],
+        group: 'frontend',
+        items: [['React 18', 'react'], ['React Router 6', 'router'], ['MobX', 'mobx'], ['Material UI', 'mui']],
     },
     {
-        title: 'Backend',
-        items: [
-            ['Node.js + Express', 'REST API for accounts and saved places'],
-            ['MongoDB + Mongoose', 'users and their favourite places'],
-            ['JWT + bcrypt', 'login tokens and hashed passwords'],
-            ['Nodemailer', 'password reset links by email'],
-        ],
+        group: 'backend',
+        items: [['Node.js + Express', 'express'], ['MongoDB + Mongoose', 'mongo'], ['JWT + bcrypt', 'jwt'], ['Nodemailer + Brevo', 'mail']],
     },
     {
-        title: 'Weather data',
-        items: [
-            ['OpenWeatherMap', 'current weather'],
-            ['WeatherAPI', 'hourly forecast for today and tomorrow'],
-            ['Visual Crossing', '7 and 15-day forecast'],
-        ],
+        group: 'data',
+        items: [['OpenWeatherMap', 'owm'], ['WeatherAPI', 'weatherapi'], ['Visual Crossing', 'vc']],
     },
     {
-        title: 'Under the hood',
-        items: [
-            ['Request caching', 'fewer API calls, instant tab switching'],
-            ['Code splitting', 'about 58% smaller first download'],
-            ['Helmet + rate limiting', 'security headers, brute-force protection'],
-            ['Responsive CSS', 'one stylesheet, works on phones'],
-        ],
+        group: 'hood',
+        items: [['home.techCache', 'cache'], ['home.techSplit', 'split'], ['home.techSecurity', 'security'], ['home.techI18n', 'i18n']],
     },
 ];
 
-const Home = () => (
-    <main className='home'>
-        <section className='card home-card'>
-            <img src={logo} alt='' />
-            <h1 className='home-title'>Weather, anywhere.</h1>
-            <p className='home-text'>
-                Hi! I built this full-stack weather app to practise React and Node.js.
-                Search any city to see the weather right now, hour by hour for today
-                and tomorrow, or a forecast for the next 15 days. Create an account
-                to save your favourite places.
-            </p>
-            <NavLink className='btn btn-primary' to='/now/london,UK'>
-                Open weather →
-            </NavLink>
-        </section>
+const Home = observer(() => {
+    const { t } = useT();
+    // Names that start with "home." are translation keys, the rest are product names
+    const name = (n) => (n.startsWith('home.') ? t(n) : n);
 
-        <section className='card stack-card'>
-            <h2 className='stack-title'>What I used</h2>
-            <div className='stack'>
-                {STACK.map((group) => (
-                    <div className='stack-group' key={group.title}>
-                        <h3>{group.title}</h3>
-                        <ul>
-                            {group.items.map(([name, purpose]) => (
-                                <li key={name}>
-                                    <strong>{name}</strong>
-                                    <span>{purpose}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                ))}
-            </div>
-        </section>
-    </main>
-);
+    return (
+        <main className='home'>
+            <section className='card home-card'>
+                <img src={logo} alt='' />
+                <h1 className='home-title'>{t('home.title')}</h1>
+                <p className='home-text'>{t('home.text')}</p>
+                <NavLink className='btn btn-primary' to='/now/london,UK'>
+                    {t('home.open')}
+                </NavLink>
+            </section>
+
+            <section className='card stack-card'>
+                <h2 className='stack-title'>{t('home.whatIUsed')}</h2>
+                <div className='stack'>
+                    {STACK.map(({ group, items }) => (
+                        <div className='stack-group' key={group}>
+                            <h3>{t(`home.groups.${group}`)}</h3>
+                            <ul>
+                                {items.map(([tech, purpose]) => (
+                                    <li key={tech}>
+                                        <strong>{name(tech)}</strong>
+                                        <span>{t(`home.purpose.${purpose}`)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        </main>
+    );
+});
 
 export default Home;

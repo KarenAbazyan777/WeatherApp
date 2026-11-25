@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { observer } from 'mobx-react-lite';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -12,12 +13,14 @@ import theme from '../../helpers/theme';
 import { isValidEmail } from '../../helpers/validation';
 import { API_URL, jsonHeaders } from '../../helpers/constants/api';
 import { rejectWithStatus } from '../../helpers/auth';
+import { useT } from '../../i18n';
 
 
-const ForgotPassword = () => {
+const ForgotPassword = observer(() => {
+    const { t } = useT();
     const [useremail, setUserEmail] = useState('');
-    const [message, setMessage] = useState('');
-    const [error, setError] = useState('');
+    const [sent, setSent] = useState(false);
+    const [error, setError] = useState(''); // translation key, translated when shown
     const [sending, setSending] = useState(false);
 
     const isDisabled = sending || !isValidEmail(useremail);
@@ -33,8 +36,8 @@ const ForgotPassword = () => {
             body: JSON.stringify({ useremail: useremail.trim() }),
         })
             .then((res) => (res.ok ? res.json() : rejectWithStatus(res)))
-            .then((result) => setMessage(result.message))
-            .catch((err) => setError(err.message || 'Something went wrong'))
+            .then(() => setSent(true))
+            .catch((err) => setError(err.status === 429 ? 'common.tooMany' : err.status === 503 ? 'common.emailFailed' : 'common.somethingWrong'))
             .finally(() => setSending(false));
     };
 
@@ -48,12 +51,12 @@ const ForgotPassword = () => {
                             <LockOutlinedIcon />
                         </Avatar>
                         <Typography component="h1" variant="h5">
-                            Forgot password
+                            {t('auth.forgotTitle')}
                         </Typography>
 
-                        {message ? (
+                        {sent ? (
                             <Typography sx={{ mt: 3, textAlign: 'center' }}>
-                                {message}. Check your inbox.
+                                {t('auth.linkSent')}
                             </Typography>
                         ) : (
                             <Box component="form" noValidate sx={{ mt: 1 }} onSubmit={sendLink}>
@@ -63,14 +66,14 @@ const ForgotPassword = () => {
                                     required
                                     fullWidth
                                     id="email"
-                                    label="Email Address"
+                                    label={t('auth.email')}
                                     autoComplete="email"
                                     autoFocus
                                     onChange={(e) => setUserEmail(e.target.value)}
                                 />
-                                {error && <Typography color="error">{error}</Typography>}
+                                {error && <Typography color="error">{t(error)}</Typography>}
                                 <Button type="submit" disabled={isDisabled} fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-                                    {sending ? 'Sending...' : 'Send reset link'}
+                                    {sending ? t('auth.sending') : t('auth.sendLink')}
                                 </Button>
                             </Box>
                         )}
@@ -79,6 +82,6 @@ const ForgotPassword = () => {
             </ThemeProvider>
         </div>
     );
-};
+});
 
 export default ForgotPassword;

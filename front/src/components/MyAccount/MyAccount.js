@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { toJS } from 'mobx';
 import { API_URL, authHeaders } from '../../helpers/constants/api';
 import { isLoggedIn, logout, rejectWithStatus } from '../../helpers/auth';
+import { useT } from '../../i18n';
 
 
 const MyAccount = observer(() => {    
@@ -13,8 +14,10 @@ const MyAccount = observer(() => {
     const navigate = useNavigate();
     const {userinfo} = useContext(Context);
     const {placeStore} = useContext(Context);
+    const { t } = useT();
     const [showPopup,setShowPopup] = useState(false);
 
+    // translation key of the error to show (e.g. 'account.timeout'), translated when shown
     const [error,setError] = useState('');
     // This page's own loading state (not shared with the weather pages)
     const [loading,setLoading] = useState(true);
@@ -29,7 +32,7 @@ const MyAccount = observer(() => {
             navigate('/signin');
             return;
         }
-        setError(err.message || 'Something went wrong');
+        setError('common.somethingWrong');
     }
 
     useEffect (()=>{
@@ -62,7 +65,7 @@ const MyAccount = observer(() => {
         .catch(err=>{
             if(err.name === 'AbortError'){
                 // aborted by the 75 s timeout -> show an error; aborted because we left the page -> nothing
-                if(timedOut) setError('The server did not answer in time');
+                if(timedOut) setError('account.timeout');
                 return;
             }
             if(err.status === 401){
@@ -70,7 +73,7 @@ const MyAccount = observer(() => {
                 navigate('/signin');
                 return;
             }
-            setError(err.message || 'Something went wrong');
+            setError('common.somethingWrong');
         })
         .finally(()=>{
             clearTimeout(slowTimer);
@@ -125,8 +128,7 @@ const MyAccount = observer(() => {
                 <Loading />
                 {slow && (
                     <p className='waking-note' role='status'>
-                        Waking up the server… On the free hosting plan this can take up to a minute
-                        after a quiet period. Thanks for waiting!
+                        {t('account.waking')}
                     </p>
                 )}
             </main>
@@ -137,9 +139,9 @@ const MyAccount = observer(() => {
         return (
             <main className='page'>
                 <section className='card account'>
-                    <p className='error-text'>{error}</p>
+                    <p className='error-text'>{t(error)}</p>
                     <button type='button' className='btn btn-primary' onClick={()=>setAttempt((n)=>n+1)}>
-                        Try again
+                        {t('common.tryAgain')}
                     </button>
                 </section>
             </main>
@@ -163,15 +165,19 @@ const MyAccount = observer(() => {
             <section className='card account'>
                 <div className='account-head'>
                     <div className='avatar' aria-hidden='true'>{initials}</div>
-                    <div>
+                    <div className='account-who'>
                         <h1 className='account-name'>{info.username} {info.userlname}</h1>
                         <p className='muted'>{info.useremail}</p>
                     </div>
+                    {/* Also in the header, but there it is hidden on phones */}
+                    <button type='button' className='btn btn-ghost' onClick={()=>{ logout(userinfo); navigate('/'); }}>
+                        {t('common.logOut')}
+                    </button>
                 </div>
 
-                {error && <p className='error-text'>{error}</p>}
+                {error && <p className='error-text'>{t(error)}</p>}
 
-                <h2>My places</h2>
+                <h2>{t('account.myPlaces')}</h2>
                 {info.places.length > 0 ? (
                     <div className='chips'>
                         {info.places.map((place)=>(
@@ -179,20 +185,20 @@ const MyAccount = observer(() => {
                                 <button type='button' className='chip-link' onClick={()=>openPlace(place)}>
                                     {place}
                                 </button>
-                                <button type='button' className='chip-remove' aria-label={`Remove ${place}`} onClick={()=>deletePlace(place)}>
+                                <button type='button' className='chip-remove' aria-label={t('account.removePlace', { place })} onClick={()=>deletePlace(place)}>
                                     ×
                                 </button>
                             </span>
                         ))}
                     </div>
                 ) : (
-                    <p className='muted'>No saved places yet. Search a city and press “☆ Save place”.</p>
+                    <p className='muted'>{t('account.noPlaces')}</p>
                 )}
 
                 <div className='danger-zone'>
-                    <p className='muted'>Deleting your account removes all your data.</p>
+                    <p className='muted'>{t('account.dangerNote')}</p>
                     <button type='button' className='btn btn-danger' onClick={()=>setShowPopup(true)}>
-                        Delete account
+                        {t('account.deleteAccount')}
                     </button>
                 </div>
             </section>
@@ -200,11 +206,11 @@ const MyAccount = observer(() => {
             {showPopup && (
                 <div className='modal-backdrop' onClick={()=>setShowPopup(false)}>
                     <div className='card modal' role='dialog' aria-modal='true' onClick={(e)=>e.stopPropagation()}>
-                        <h2>Delete your account?</h2>
-                        <p className='muted'>This can't be undone.</p>
+                        <h2>{t('account.deleteQuestion')}</h2>
+                        <p className='muted'>{t('account.cantUndo')}</p>
                         <div className='modal-actions'>
-                            <button type='button' className='btn btn-ghost' onClick={()=>setShowPopup(false)}>Cancel</button>
-                            <button type='button' className='btn btn-danger-solid' onClick={deleteAccount}>Delete</button>
+                            <button type='button' className='btn btn-ghost' onClick={()=>setShowPopup(false)}>{t('common.cancel')}</button>
+                            <button type='button' className='btn btn-danger-solid' onClick={deleteAccount}>{t('common.delete')}</button>
                         </div>
                     </div>
                 </div>
