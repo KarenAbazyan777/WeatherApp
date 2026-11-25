@@ -35,12 +35,17 @@ const Search = observer(({ navigetion }) => {
     const [open, setOpen] = useState(false);       // is the list shown
     const [active, setActive] = useState(-1);      // highlighted row (keyboard), -1 = none
     const showList = open && suggestions.length > 0;
+    // The highlighted suggestion, or null. `active` can briefly point past the end
+    // of the list (e.g. right after picking a city the list becomes empty), so
+    // never read suggestions[active] without this check.
+    const activeItem = showList && active >= 0 && active < suggestions.length ? suggestions[active] : null;
 
     // New results -> nothing highlighted yet
     useEffect(() => setActive(-1), [suggestions]);
 
     const goTo = (place) => {
         setOpen(false);
+        setActive(-1);
         placeStore.setWeather(place);
         navigetion();
         placeStore.setPlace('');
@@ -49,8 +54,8 @@ const Search = observer(({ navigetion }) => {
     const handleSearch = (e) => {
         e.preventDefault();
         // Enter on a highlighted suggestion opens that city
-        if (showList && active >= 0) {
-            goTo(suggestions[active].place);
+        if (activeItem) {
+            goTo(activeItem.place);
             return;
         }
         if (disableSearch) return;
@@ -134,7 +139,7 @@ const Search = observer(({ navigetion }) => {
                         aria-autocomplete='list'
                         aria-expanded={showList}
                         aria-controls='city-suggestions'
-                        aria-activedescendant={active >= 0 ? `city-${suggestions[active].id}` : undefined}
+                        aria-activedescendant={activeItem ? `city-${activeItem.id}` : undefined}
                         autoComplete='off'
                         value={placeStore.place}
                         onChange={(e) => {

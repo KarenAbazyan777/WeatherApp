@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Header from './components/Header/Header';
 import Home from './components/Home/Home';
 import Loading from './components/Loading/Loading';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 
 // Every page below is downloaded only when the user opens it.
 // The form pages carry MUI (the biggest library), so visitors who only
@@ -25,6 +26,8 @@ const App = () => (
     <BrowserRouter>
         <Header />
         <div>
+            {/* A crash in a page shows a message instead of a blank screen */}
+            <ErrorBoundary>
             {/* Shown for the moment a page's file is downloading */}
             <Suspense fallback={<Loading />}>
                 <Routes>
@@ -45,6 +48,7 @@ const App = () => (
                     <Route path='*' element={<NotFound />} />
                 </Routes>
             </Suspense>
+            </ErrorBoundary>
         </div>
     </BrowserRouter>
 );
